@@ -1,104 +1,111 @@
 import json
 
+
 def load_pokemons(file_path):
-
-    # Abrir archivo en modo lectura
     with open(file_path, "r", encoding="utf-8") as file:
-
-        # Cargar contenido JSON
         pokemons = json.load(file)
 
     return pokemons
 
 
 def save_pokemons(file_path, data):
-
-    # Abrir archivo en modo escritura
     with open(file_path, "w", encoding="utf-8") as file:
-
-        # Guardar información en formato JSON
         json.dump(data, file, indent=4)
 
 
-# Leer pokémon existentes
-pokemons_list = load_pokemons("pokemons.json")
+def show_current_pokemons(pokemons):
+    print("Current Pokemons:")
 
-print("Current Pokemons:")
-for pokemon in pokemons_list:
-    print("-", pokemon["name"])
-
-
-print("\nEnter the new Pokemon information")
-
-# Datos principales
-name = input("Name: ")
-pokemon_type = input("Type: ")
-level = int(input("Level: "))
-weight = float(input("Weight in KG: "))
-
-# Booleano
-shiny_input = input("Is shiny? (yes/no): ")
-
-if shiny_input.lower() == "yes":
-    is_shiny = True
-else:
-    is_shiny = False
-
-# Null o item
-held_item = input("Held item (leave empty for none): ")
-
-if held_item == "":
-    held_item = None
+    for pokemon in pokemons:
+        print("-", pokemon["name"])
 
 
-# Skills
-skills = []
+def get_boolean_value():
+    shiny_input = input("Is shiny? (yes/no): ")
 
-print("\nEnter 4 skills")
-
-for i in range(4):
-
-    skill = input("Skill " + str(i + 1) + ": ")
-
-    skills.append(skill)
+    if shiny_input.lower() == "yes":
+        return True
+    else:
+        return False
 
 
-# Stats
-print("\nEnter Pokemon stats")
+def get_held_item():
+    held_item = input("Held item (leave empty for none): ")
 
-hp = int(input("HP: "))
-attack = int(input("Attack: "))
-defense = int(input("Defense: "))
-sp_attack = int(input("Special Attack: "))
-sp_defense = int(input("Special Defense: "))
-speed = int(input("Speed: "))
+    if held_item == "":
+        return None
+
+    return held_item
 
 
-# Crear nuevo Pokémon
-new_pokemon = {
-    "name": name,
-    "type": pokemon_type,
-    "level": level,
-    "weight_kg": weight,
-    "is_shiny": is_shiny,
-    "held_item": held_item,
-    "skills": skills,
-    "stats": {
-        "hp": hp,
-        "attack": attack,
-        "defense": defense,
-        "sp_attack": sp_attack,
-        "sp_defense": sp_defense,
-        "speed": speed
+def get_skills():
+    skills = []
+
+    print("\nEnter 4 skills")
+
+    for i in range(4):
+        skill = input("Skill " + str(i + 1) + ": ")
+        skills.append(skill)
+
+    return skills
+
+
+def get_stats():
+    print("\nEnter Pokemon stats")
+
+    stats = {
+        "hp": int(input("HP: ")),
+        "attack": int(input("Attack: ")),
+        "defense": int(input("Defense: ")),
+        "sp_attack": int(input("Special Attack: ")),
+        "sp_defense": int(input("Special Defense: ")),
+        "speed": int(input("Speed: "))
     }
-}
+
+    return stats
 
 
-# Agregar nuevo Pokémon a la lista
-pokemons_list.append(new_pokemon)
+def get_new_pokemon():
+    print("\nEnter the new Pokemon information")
+
+    name = input("Name: ")
+    pokemon_type = input("Type: ")
+    level = int(input("Level: "))
+    weight = float(input("Weight in KG: "))
+
+    is_shiny = get_boolean_value()
+    held_item = get_held_item()
+    skills = get_skills()
+    stats = get_stats()
+
+    new_pokemon = {
+        "name": name,
+        "type": pokemon_type,
+        "level": level,
+        "weight_kg": weight,
+        "is_shiny": is_shiny,
+        "held_item": held_item,
+        "skills": skills,
+        "stats": stats
+    }
+
+    return new_pokemon
 
 
-# Guardar nuevamente el archivo JSON
-save_pokemons("pokemons.json", pokemons_list)
+def main():
+    file_path = "pokemons.json"
 
-print("\nPokemon added successfully.")
+    pokemons = load_pokemons(file_path)
+
+    show_current_pokemons(pokemons)
+
+    new_pokemon = get_new_pokemon()
+
+    pokemons.append(new_pokemon)
+
+    save_pokemons(file_path, pokemons)
+
+    print("\nPokemon added successfully.")
+
+
+main()
