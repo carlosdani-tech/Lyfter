@@ -1,0 +1,301 @@
+<mxfile host="app.diagrams.net" pages="5">
+  <diagram name="Ejercicio 1 - Descuento" id="DZjy3-LtxDt-v7Hsx7S9">
+    <mxGraphModel dx="766" dy="769" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="e1_inicio" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Inicio" vertex="1">
+          <mxGeometry height="60" width="160" x="340" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_pedir" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Pedir precio" vertex="1">
+          <mxGeometry height="60" width="160" x="340" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_cond" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="¿precio &lt; 100?" vertex="1">
+          <mxGeometry height="100" width="140" x="350" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_desc2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="descuento = precio * 0.02" vertex="1">
+          <mxGeometry height="60" width="200" x="120" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_desc10" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="descuento = precio * 0.10" vertex="1">
+          <mxGeometry height="60" width="200" x="520" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_final" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="precioFinal = precio - descuento" vertex="1">
+          <mxGeometry height="60" width="220" x="320" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_mostrar" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Mostrar precioFinal" vertex="1">
+          <mxGeometry height="60" width="180" x="340" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_fin" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Fin" vertex="1">
+          <mxGeometry height="60" width="140" x="360" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_f1" edge="1" parent="1" source="e1_inicio" style="endArrow=block;html=1;" target="e1_pedir">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_f2" edge="1" parent="1" source="e1_pedir" style="endArrow=block;html=1;" target="e1_cond">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_f3" edge="1" parent="1" source="e1_cond" style="endArrow=block;html=1;" target="e1_desc2" value="Sí">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_f4" edge="1" parent="1" source="e1_cond" style="endArrow=block;html=1;" target="e1_desc10" value="No">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_f5" edge="1" parent="1" source="e1_desc2" style="endArrow=block;html=1;" target="e1_final">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_f6" edge="1" parent="1" source="e1_desc10" style="endArrow=block;html=1;" target="e1_final">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_f7" edge="1" parent="1" source="e1_final" style="endArrow=block;html=1;" target="e1_mostrar">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1_f8" edge="1" parent="1" source="e1_mostrar" style="endArrow=block;html=1;" target="e1_fin">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Ejercicio 2 - Tiempo" id="DUD7ZtC_Ls8SmLU_dGo6">
+    <mxGraphModel dx="806" dy="809" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="e2_inicio" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Inicio" vertex="1">
+          <mxGeometry height="60" width="160" x="350" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_pedir" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Pedir segundos" vertex="1">
+          <mxGeometry height="60" width="180" x="340" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_cond1" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="¿segundos &lt; 600?" vertex="1">
+          <mxGeometry height="100" width="160" x="350" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_faltante" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="faltante = 600 - segundos" vertex="1">
+          <mxGeometry height="60" width="210" x="130" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_mostrar_faltante" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Mostrar faltante" vertex="1">
+          <mxGeometry height="60" width="180" x="160" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_cond2" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="¿segundos &gt; 600?" vertex="1">
+          <mxGeometry height="100" width="160" x="490" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_mayor" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Mostrar &quot;Mayor&quot;" vertex="1">
+          <mxGeometry height="60" width="180" x="390" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_igual" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Mostrar &quot;Igual&quot;" vertex="1">
+          <mxGeometry height="60" width="180" x="580" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_fin" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Fin" vertex="1">
+          <mxGeometry height="60" width="140" x="360" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_f1" edge="1" parent="1" source="e2_inicio" style="endArrow=block;html=1;" target="e2_pedir">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_f2" edge="1" parent="1" source="e2_pedir" style="endArrow=block;html=1;" target="e2_cond1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_f3" edge="1" parent="1" source="e2_cond1" style="endArrow=block;html=1;" target="e2_faltante" value="Sí">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_f4" edge="1" parent="1" source="e2_faltante" style="endArrow=block;html=1;" target="e2_mostrar_faltante">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_f5" edge="1" parent="1" source="e2_cond1" style="endArrow=block;html=1;" target="e2_cond2" value="No">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_f6" edge="1" parent="1" source="e2_cond2" style="endArrow=block;html=1;" target="e2_mayor" value="Sí">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_f7" edge="1" parent="1" source="e2_cond2" style="endArrow=block;html=1;" target="e2_igual" value="No">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_f8" edge="1" parent="1" source="e2_mostrar_faltante" style="endArrow=block;html=1;" target="e2_fin">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_f9" edge="1" parent="1" source="e2_mayor" style="endArrow=block;html=1;" target="e2_fin">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2_f10" edge="1" parent="1" source="e2_igual" style="endArrow=block;html=1;" target="e2_fin">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Ejercicio 3 - Suma" id="226rXmDqsAsXbZusC7E4">
+    <mxGraphModel dx="766" dy="769" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="e3_inicio" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Inicio" vertex="1">
+          <mxGeometry height="60" width="160" x="350" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_pedir" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Pedir número" vertex="1">
+          <mxGeometry height="60" width="180" x="340" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_init1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="suma = 0" vertex="1">
+          <mxGeometry height="50" width="160" x="350" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_init2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="contador = 1" vertex="1">
+          <mxGeometry height="50" width="160" x="350" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_cond" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="¿contador &lt;= número?" vertex="1">
+          <mxGeometry height="110" width="180" x="340" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_sumar" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="suma = suma + contador" vertex="1">
+          <mxGeometry height="60" width="220" x="330" y="570" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_contador" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="contador = contador + 1" vertex="1">
+          <mxGeometry height="60" width="220" x="330" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_mostrar" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Mostrar suma" vertex="1">
+          <mxGeometry height="60" width="180" x="620" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_fin" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Fin" vertex="1">
+          <mxGeometry height="60" width="140" x="640" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_f1" edge="1" parent="1" source="e3_inicio" style="endArrow=block;html=1;" target="e3_pedir">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_f2" edge="1" parent="1" source="e3_pedir" style="endArrow=block;html=1;" target="e3_init1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_f3" edge="1" parent="1" source="e3_init1" style="endArrow=block;html=1;" target="e3_init2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_f4" edge="1" parent="1" source="e3_init2" style="endArrow=block;html=1;" target="e3_cond">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_f5" edge="1" parent="1" source="e3_cond" style="endArrow=block;html=1;" target="e3_sumar" value="Sí">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_f6" edge="1" parent="1" source="e3_sumar" style="endArrow=block;html=1;" target="e3_contador">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_f7" edge="1" parent="1" source="e3_contador" style="endArrow=block;html=1;orthogonalLoop=1;jettySize=auto;" target="e3_cond">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="230" y="700" />
+              <mxPoint x="230" y="465" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3_f8" edge="1" parent="1" source="e3_cond" style="endArrow=block;html=1;" target="e3_mostrar" value="No">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3_f9" edge="1" parent="1" source="e3_mostrar" style="endArrow=block;html=1;" target="e3_fin">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Ejercicio 2 - Número secreto" id="mZJP5mXpofkMapexiWPN">
+    <mxGraphModel dx="766" dy="769" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="a1" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Inicio" vertex="1">
+          <mxGeometry height="60" width="160" x="340" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="numeroSecreto = 7" vertex="1">
+          <mxGeometry height="60" width="200" x="320" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Pedir numero" vertex="1">
+          <mxGeometry height="60" width="180" x="330" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="¿numero = numeroSecreto?" vertex="1">
+          <mxGeometry height="120" width="220" x="310" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="a5" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Mostrar &quot;Correcto&quot;" vertex="1">
+          <mxGeometry height="60" width="190" x="330" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="a6" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Fin" vertex="1">
+          <mxGeometry height="60" width="140" x="350" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="a7" edge="1" parent="1" source="a1" style="endArrow=block;html=1;" target="a2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a8" edge="1" parent="1" source="a2" style="endArrow=block;html=1;" target="a3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a9" edge="1" parent="1" source="a3" style="endArrow=block;html=1;" target="a4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a10" edge="1" parent="1" source="a4" style="endArrow=block;html=1;" target="a5" value="Sí">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a11" edge="1" parent="1" source="a4" style="endArrow=block;html=1;orthogonalLoop=1;" target="a3" value="No">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="170" y="390" />
+              <mxPoint x="170" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a12" edge="1" parent="1" source="a5" style="endArrow=block;html=1;" target="a6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Ejercicio 3 - Tres números" id="KrgQbACY3lUwfAD66RhG">
+    <mxGraphModel dx="901" dy="905" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="b1" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Inicio" vertex="1">
+          <mxGeometry height="60" width="160" x="340" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="b2" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Pedir num1" vertex="1">
+          <mxGeometry height="50" width="160" x="340" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="b3" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Pedir num2" vertex="1">
+          <mxGeometry height="50" width="160" x="340" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="b4" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Pedir num3" vertex="1">
+          <mxGeometry height="50" width="160" x="340" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="b5" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="suma = num1 + num2 + num3" vertex="1">
+          <mxGeometry height="60" width="240" x="300" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="b6" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="¿num1 = 30 o num2 = 30 o num3 = 30 o suma = 30?" vertex="1">
+          <mxGeometry height="150" width="280" x="280" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="b7" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Mostrar &quot;Correcto&quot;" vertex="1">
+          <mxGeometry height="60" width="200" x="110" y="690" as="geometry" />
+        </mxCell>
+        <mxCell id="b8" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Mostrar &quot;Incorrecto&quot;" vertex="1">
+          <mxGeometry height="60" width="210" x="540" y="690" as="geometry" />
+        </mxCell>
+        <mxCell id="b9" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Fin" vertex="1">
+          <mxGeometry height="60" width="140" x="350" y="830" as="geometry" />
+        </mxCell>
+        <mxCell id="b10" edge="1" parent="1" source="b1" style="endArrow=block;html=1;" target="b2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="b11" edge="1" parent="1" source="b2" style="endArrow=block;html=1;" target="b3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="b12" edge="1" parent="1" source="b3" style="endArrow=block;html=1;" target="b4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="b13" edge="1" parent="1" source="b4" style="endArrow=block;html=1;" target="b5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="b14" edge="1" parent="1" source="b5" style="endArrow=block;html=1;" target="b6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="b15" edge="1" parent="1" source="b6" style="endArrow=block;html=1;" target="b7" value="Sí">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="b16" edge="1" parent="1" source="b6" style="endArrow=block;html=1;" target="b8" value="No">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="b17" edge="1" parent="1" source="b7" style="endArrow=block;html=1;" target="b9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="b18" edge="1" parent="1" source="b8" style="endArrow=block;html=1;" target="b9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
