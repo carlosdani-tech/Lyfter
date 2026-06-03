@@ -192,17 +192,26 @@ Como un mismo `VIN` aparece con mas de un propietario, una clave natural razonab
 
 `(VIN, OwnerID)`
 
-Dependencias funcionales observables:
+Dependencias funcionales observables y reglas de negocio:
 
-1. `VIN -> Make, Model, Year, Color`
+1. `VIN -> Year, Color`
 2. `OwnerID -> OwnerName, OwnerPhone`
-3. `(VIN, OwnerID) -> InsuranceCompany, InsurancePolicy`
+3. `(VIN, OwnerID) -> InsurancePolicy`
+4. `InsurancePolicy -> InsuranceCompany`
+
+Ademas, segun el feedback recibido:
+
+- `Make` y `Model` no deben quedar almacenados como si dependieran de un `VIN` individual.
+- Muchos autos distintos pueden compartir la misma marca y el mismo modelo.
+- Por eso, `Make` y `Model` deben tratarse como informacion de catalogo reutilizable.
 
 Justificacion:
 
-- Los datos tecnicos del vehiculo dependen solo del `VIN`.
-- Los datos del propietario dependen solo del `OwnerID`.
-- La informacion del seguro queda asociada a la relacion entre vehiculo y propietario en esta muestra.
+- `VIN` identifica una unidad fisica especifica.
+- `OwnerID` identifica al propietario.
+- La poliza queda asociada a la relacion vehiculo-propietario.
+- La compania aseguradora depende de la poliza emitida.
+- La marca y el modelo describen tipos de vehiculo, no unidades individuales.
 
 # Primera forma normal (1FN)
 
@@ -224,10 +233,10 @@ La tabla no esta en 2FN porque la clave es compuesta `(VIN, OwnerID)` y existen 
 
 Eso produce redundancia:
 
-- Si cambia el color o modelo del auto, hay varias filas por revisar si ese auto tiene varios propietarios.
+- Si cambia un dato del vehiculo, hay varias filas por revisar si ese auto tiene varios propietarios.
 - Si cambia el telefono del propietario, tambien habria multiples filas por actualizar.
 
-Descomposicion a 2FN:
+Descomposicion inicial a 2FN:
 
 # Tabla `CAR_2FN`
 
@@ -246,43 +255,136 @@ Descomposicion a 2FN:
 | 103 | Claire | 555-123-4567 |
 | 104 | Dave | 111-222-3333 |
 
-# Tabla `CAR_OWNER_INSURANCE_2FN`
+# Tabla `INSURANCE_POLICY_2FN`
 
-| VIN | OwnerID | InsuranceCompany | InsurancePolicy |
-| --- | --- | --- | --- |
-| 1HG CM8 2633 A | 101 | ABC Insurance | Fire & Theft |
-| 1HG CM8 2633 A | 102 | XYZ Insurance | Full Cover |
-| 5J6R M4H 79EL | 103 | DEF Insurance | Collision |
-| 1G1R A6EH 1FU | 104 | GHI Insurance | Basic Legal |
+| InsurancePolicy | InsuranceCompany |
+| --- | --- |
+| Fire & Theft | ABC Insurance |
+| Full Cover | XYZ Insurance |
+| Collision | DEF Insurance |
+| Basic Legal | GHI Insurance |
+
+# Tabla `CAR_OWNER_POLICY_2FN`
+
+| VIN | OwnerID | InsurancePolicy |
+| --- | --- | --- |
+| 1HG CM8 2633 A | 101 | Fire & Theft |
+| 1HG CM8 2633 A | 102 | Full Cover |
+| 5J6R M4H 79EL | 103 | Collision |
+| 1G1R A6EH 1FU | 104 | Basic Legal |
+
+Justificacion adicional:
+
+- La primera descomposicion quita las dependencias parciales de `VIN` y `OwnerID`.
+- Siguiendo el feedback, tambien conviene separar `InsuranceCompany`, porque esa informacion depende de la poliza y no del par `(VIN, OwnerID)`.
 
 # Paso a tercera forma normal (3FN)
 
-Despues de la descomposicion anterior no quedan dependencias transitivas evidentes entre atributos no clave:
+La estructura anterior aun debe refinarse por dos razones:
 
-- En `CAR_2FN`, todos los atributos dependen de `VIN`.
-- En `OWNER_2FN`, todos los atributos dependen de `OwnerID`.
-- En `CAR_OWNER_INSURANCE_2FN`, los atributos restantes dependen de la clave compuesta `(VIN, OwnerID)`.
+1. `Make` y `Model` siguen repetidos dentro de `CAR_2FN`.
+2. La informacion de seguros todavia debe expresarse como compania y poliza separadas formalmente.
 
-Por eso, en este caso, la estructura en 2FN ya cumple 3FN.
+Por eso, la descomposicion final a 3FN queda asi:
+
+# Tabla `MAKE`
+
+| MakeID | MakeName |
+| --- | --- |
+| MK01 | Honda |
+| MK02 | Chevrolet |
+
+# Tabla `MODEL`
+
+| ModelID | MakeID | ModelName |
+| --- | --- | --- |
+| MD01 | MK01 | Accord |
+| MD02 | MK01 | CR-V |
+| MD03 | MK02 | Volt |
+
+# Tabla `CAR`
+
+| VIN | ModelID | Year | Color |
+| --- | --- | --- | --- |
+| 1HG CM8 2633 A | MD01 | 2003 | Silver |
+| 5J6R M4H 79EL | MD02 | 2014 | Blue |
+| 1G1R A6EH 1FU | MD03 | 2015 | Red |
+
+# Tabla `OWNER`
+
+| OwnerID | OwnerName | OwnerPhone |
+| --- | --- | --- |
+| 101 | Alice | 123-456-7890 |
+| 102 | Bob | 987-654-3210 |
+| 103 | Claire | 555-123-4567 |
+| 104 | Dave | 111-222-3333 |
+
+# Tabla `INSURANCE_COMPANY`
+
+| InsuranceCompanyID | InsuranceCompanyName |
+| --- | --- |
+| IC01 | ABC Insurance |
+| IC02 | XYZ Insurance |
+| IC03 | DEF Insurance |
+| IC04 | GHI Insurance |
+
+# Tabla `INSURANCE_POLICY`
+
+| PolicyID | InsuranceCompanyID | PolicyName |
+| --- | --- | --- |
+| PL01 | IC01 | Fire & Theft |
+| PL02 | IC02 | Full Cover |
+| PL03 | IC03 | Collision |
+| PL04 | IC04 | Basic Legal |
+
+# Tabla `CAR_OWNER_POLICY`
+
+| VIN | OwnerID | PolicyID |
+| --- | --- | --- |
+| 1HG CM8 2633 A | 101 | PL01 |
+| 1HG CM8 2633 A | 102 | PL02 |
+| 5J6R M4H 79EL | 103 | PL03 |
+| 1G1R A6EH 1FU | 104 | PL04 |
+
+Justificacion:
+
+- `MAKE` evita repetir la marca en cada auto.
+- `MODEL` guarda el modelo y lo vincula con su marca.
+- `CAR` conserva solo los datos propios de la unidad identificada por `VIN`.
+- `INSURANCE_COMPANY` guarda cada aseguradora una sola vez.
+- `INSURANCE_POLICY` guarda cada poliza y la enlaza con su compania.
+- `CAR_OWNER_POLICY` deja solo la relacion entre auto, propietario y poliza.
 
 # Resultado final para `Cars`
 
 Esquema final en 3FN:
 
-- `CAR(VIN, Make, Model, Year, Color)`
+- `MAKE(MakeID, MakeName)`
+- `MODEL(ModelID, MakeID, ModelName)`
+- `CAR(VIN, ModelID, Year, Color)`
 - `OWNER(OwnerID, OwnerName, OwnerPhone)`
-- `CAR_OWNER_INSURANCE(VIN, OwnerID, InsuranceCompany, InsurancePolicy)`
+- `INSURANCE_COMPANY(InsuranceCompanyID, InsuranceCompanyName)`
+- `INSURANCE_POLICY(PolicyID, InsuranceCompanyID, PolicyName)`
+- `CAR_OWNER_POLICY(VIN, OwnerID, PolicyID)`
 
 Claves:
 
+- `MAKE`: `MakeID`
+- `MODEL`: `ModelID`
 - `CAR`: `VIN`
 - `OWNER`: `OwnerID`
-- `CAR_OWNER_INSURANCE`: `(VIN, OwnerID)`
+- `INSURANCE_COMPANY`: `InsuranceCompanyID`
+- `INSURANCE_POLICY`: `PolicyID`
+- `CAR_OWNER_POLICY`: `(VIN, OwnerID)`
 
 Llaves foraneas:
 
-- `CAR_OWNER_INSURANCE.VIN -> CAR.VIN`
-- `CAR_OWNER_INSURANCE.OwnerID -> OWNER.OwnerID`
+- `MODEL.MakeID -> MAKE.MakeID`
+- `CAR.ModelID -> MODEL.ModelID`
+- `INSURANCE_POLICY.InsuranceCompanyID -> INSURANCE_COMPANY.InsuranceCompanyID`
+- `CAR_OWNER_POLICY.VIN -> CAR.VIN`
+- `CAR_OWNER_POLICY.OwnerID -> OWNER.OwnerID`
+- `CAR_OWNER_POLICY.PolicyID -> INSURANCE_POLICY.PolicyID`
 
 ---
 
@@ -305,15 +407,19 @@ La razon principal fue eliminar:
 
 # Para `Cars`
 
-Se separaron tres entidades:
+Se separaron siete entidades:
 
-1. Auto
-2. Propietario
-3. Relacion auto-propietario-seguro
+1. Fabricante
+2. Modelo
+3. Auto
+4. Propietario
+5. Compania de seguros
+6. Poliza
+7. Relacion auto-propietario-poliza
 
 La razon principal fue eliminar:
 
 - Dependencias parciales de los datos del auto respecto a `VIN`
 - Dependencias parciales de los datos del propietario respecto a `OwnerID`
-
-En esta tabla no fue necesario descomponer mas alla porque, una vez separadas esas entidades, no quedaron dependencias transitivas claras.
+- Repeticion innecesaria de marca y modelo en cada vehiculo
+- Repeticion innecesaria de la compania de seguros en cada relacion vehiculo-propietario
