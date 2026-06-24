@@ -34,9 +34,9 @@ app = Flask("authorization-service")
 jwt_manager = JWT_Manager(PRIVATE_KEY, PUBLIC_KEY)
 
 cache_manager = CacheManager (
-    host="ticket-sunray-elegiac-14862.db.redis.io",
-    port=12572,
-    password="kodMB6pLnzDNo3xBBTiKdu7S6mtq5htD",
+    host="PLACEHOLDER",
+    port=123,
+    password="PLACEHOLDER",
 )
 
 def json_error(message, status_code):
