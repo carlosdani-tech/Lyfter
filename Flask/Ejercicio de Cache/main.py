@@ -22,6 +22,7 @@ ADMIN_ROLE = "admin"
 USER_ROLE = "user"
 DEFAULT_ADMIN_USERNAME = "admin"
 DEFAULT_ADMIN_PASSWORD = "admin123"
+PRODUCT_CACHE_TTL = 300
 
 with open("private_key.pem", "r", encoding="utf-8") as private_file:
     PRIVATE_KEY = private_file.read()
@@ -33,9 +34,9 @@ app = Flask("authorization-service")
 jwt_manager = JWT_Manager(PRIVATE_KEY, PUBLIC_KEY)
 
 cache_manager = CacheManager (
-    host="PLACEHOLDER",
-    port=1234,
-    password="PLACEHOLDER",
+    host="ticket-sunray-elegiac-14862.db.redis.io",
+    port=12572,
+    password="kodMB6pLnzDNo3xBBTiKdu7S6mtq5htD",
 )
 
 def json_error(message, status_code):
@@ -221,7 +222,11 @@ def list_products():
         session.close()
 
     response_json = json.dumps(response_body)
-    cache_manager.store_data(products_cache_key(), response_json)
+    cache_manager.store_data(
+        products_cache_key(),
+        response_json,
+        PRODUCT_CACHE_TTL,
+    )
     return app.response_class(
         response=response_json,
         status=200,
@@ -250,7 +255,11 @@ def get_product(product_id):
         session.close()
 
     response_json = json.dumps(response_body)
-    cache_manager.store_data(product_cache_key(product_id), response_json)
+    cache_manager.store_data(
+        product_cache_key(product_id),
+        response_json,
+        PRODUCT_CACHE_TTL,
+    )
     return app.response_class(
         response=response_json,
         status=200,
@@ -418,6 +427,10 @@ def create_sale():
     finally:
         session.close()
 
+    for item in items:
+        cache_manager.delete_data(product_cache_key(item["product_id"]))
+
+    cache_manager.delete_data(products_cache_key())
     return jsonify(response_body), 201
 
 
