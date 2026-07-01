@@ -1,0 +1,28 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Environment
+.env
+instance/
+
+# Codex local files
+AGENTS.md
+.codex/
+.codex-*/
+.codex-log/
+*.codex.log
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+
+# Optional VS Code local config
+# Uncomment if you do not want to upload VS Code settings
+# .vscode/
