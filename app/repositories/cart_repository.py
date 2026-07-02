@@ -4,6 +4,8 @@ from app.extensions import db
 from app.models import Cart, CartItem
 
 ACTIVE_CART_STATUS = "active"
+ABANDONED_CART_STATUS = "abandoned"
+CHECKED_OUT_CART_STATUS = "checked_out"
 
 
 class CartRepository:
@@ -13,6 +15,19 @@ class CartRepository:
             db.session.query(Cart)
             .filter(Cart.user_id == user_id, Cart.status == ACTIVE_CART_STATUS)
             .one_or_none()
+        )
+
+    @staticmethod
+    def get_by_id(cart_id: int) -> Cart | None:
+        return db.session.get(Cart, cart_id)
+
+    @staticmethod
+    def list_by_user_id(user_id: int) -> list[Cart]:
+        return (
+            db.session.query(Cart)
+            .filter(Cart.user_id == user_id)
+            .order_by(Cart.updated_at.desc(), Cart.id.desc())
+            .all()
         )
 
     @staticmethod
@@ -29,6 +44,12 @@ class CartRepository:
             return cart
 
         return CartRepository.create_active(user_id)
+
+    @staticmethod
+    def update_status(cart: Cart, status: str) -> Cart:
+        cart.status = status
+        db.session.flush()
+        return cart
 
     @staticmethod
     def get_item(cart_id: int, product_id: int) -> CartItem | None:

@@ -4,6 +4,10 @@ from app.extensions import db
 from app.repositories.cart_repository import CartRepository
 from app.repositories.product_repository import ProductRepository
 
+ABANDONED_CART_STATUS = "abandoned"
+ACTIVE_CART_STATUS = "active"
+CHECKED_OUT_CART_STATUS = "checked_out"
+
 
 class CartError(Exception):
     def __init__(self, message: str, status_code: int = 400):
@@ -50,6 +54,50 @@ class CartService:
     @staticmethod
     def get_active_cart(user_id: int) -> dict:
         cart = CartRepository.get_or_create_active(user_id)
+        db.session.commit()
+        return {"cart": serialize_cart(cart)}
+
+    @staticmethod
+    def list_cart_history(user_id: int) -> dict:
+        carts = CartRepository.list_by_user_id(user_id)
+        return {"carts": [serialize_cart(cart) for cart in carts]}
+
+    @staticmethod
+    def abandon_active_cart(user_id: int) -> dict:
+        cart = CartRepository.get_active_by_user_id(user_id)
+        if not cart:
+            raise CartError("Active cart not found.", 404)
+
+        CartRepository.update_status(cart, ABANDONED_CART_STATUS)
+        db.session.commit()
+        return {"cart": serialize_cart(cart)}
+
+    @staticmethod
+    def reactivate_cart(user_id: int, cart_id: int) -> dict:
+        cart = CartRepository.get_by_id(cart_id)
+        if not cart:
+            raise CartError("Cart not found.", 404)
+
+        if cart.user_id != user_id:
+            raise CartError("You cannot access this cart.", 403)
+
+        if cart.status == CHECKED_OUT_CART_STATUS:
+            raise CartError("Completed carts cannot be reactivated.", 400)
+
+        if cart.status != ABANDONED_CART_STATUS:
+            raise CartError("Only abandoned carts can be reactivated.", 400)
+
+        for item in cart.items:
+            if not item.product or not item.product.is_active:
+                raise CartError("Product not found.", 404)
+            if item.quantity > item.product.stock:
+                raise CartError("Quantity cannot be greater than available stock.", 400)
+
+        active_cart = CartRepository.get_active_by_user_id(user_id)
+        if active_cart:
+            CartRepository.update_status(active_cart, ABANDONED_CART_STATUS)
+
+        CartRepository.update_status(cart, ACTIVE_CART_STATUS)
         db.session.commit()
         return {"cart": serialize_cart(cart)}
 

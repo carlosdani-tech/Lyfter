@@ -62,7 +62,7 @@ Rollback the last migration only when the impact is understood:
 - `created_at`: required timestamp.
 - `updated_at`: required timestamp.
 
-Roles support authentication, JWT permissions, and access checks. There is no user management CRUD module in this project scope.
+Roles support authentication, JWT permissions, access checks, and admin-only user management.
 
 ### `users`
 
@@ -120,6 +120,9 @@ Each cart can include a product only once through `uq_cart_items_cart_product`. 
 - `subtotal_amount`: required numeric value, must be greater than or equal to 0.
 - `tax_amount`: required numeric value, must be greater than or equal to 0.
 - `total_amount`: required numeric value, must be greater than or equal to 0.
+- `billing_address`: optional string captured from checkout payload for new sales.
+- `payment_method`: optional safe payment method captured from checkout payload.
+- `payment_reference`: optional external or mock payment reference captured from checkout payload.
 - `completed_at`: optional timestamp.
 - `cancelled_at`: optional timestamp.
 - `returned_at`: optional timestamp.

@@ -1,8 +1,8 @@
-﻿from flask import Blueprint
-from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
+﻿from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
 
 from app.services.invoice_service import InvoiceError, InvoiceService
 from app.utils.responses import error_response, success_response
+from flask import Blueprint
 
 invoices_bp = Blueprint("invoices", __name__, url_prefix="/invoices")
 

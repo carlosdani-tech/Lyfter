@@ -1,7 +1,8 @@
 ﻿from typing import Any
 
-from flask import jsonify
 from flask.typing import ResponseReturnValue
+
+from flask import jsonify
 
 
 def success_response(data: Any = None, status_code: int = 200) -> ResponseReturnValue:

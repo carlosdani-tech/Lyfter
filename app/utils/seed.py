@@ -1,4 +1,3 @@
-from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.security import generate_password_hash
 
@@ -6,6 +5,7 @@ from app.extensions import db
 from app.repositories.role_repository import RoleRepository
 from app.repositories.user_repository import UserRepository
 from app.services.auth_service import ADMIN_ROLE
+from flask import current_app
 
 
 def seed_admin_user() -> None:

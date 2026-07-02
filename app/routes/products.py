@@ -1,5 +1,4 @@
-﻿from flask import Blueprint, request
-from flask_jwt_extended import jwt_required
+﻿from flask_jwt_extended import jwt_required
 
 from app.decorators.auth import admin_required
 from app.schemas.product_schema import (
@@ -8,6 +7,7 @@ from app.schemas.product_schema import (
 )
 from app.services.product_service import ProductError, ProductService
 from app.utils.responses import error_response, success_response
+from flask import Blueprint, request
 
 products_bp = Blueprint("products", __name__, url_prefix="/products")
 

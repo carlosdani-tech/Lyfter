@@ -1,5 +1,4 @@
-﻿from flask import Flask
-from redis import Redis
+﻿from redis import Redis
 
 import app.extensions as extensions
 from app.config import Config
@@ -7,6 +6,7 @@ from app.extensions import db, jwt, migrate
 from app.models import load_models
 from app.routes import register_blueprints
 from app.utils.seed import seed_admin_user
+from flask import Flask
 
 
 def create_app(config_class: type[Config] = Config) -> Flask:

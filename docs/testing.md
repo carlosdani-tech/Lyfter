@@ -49,10 +49,11 @@ Manual commands:
 
 - Authentication.
 - Role permissions.
+- Admin-only user management endpoints.
 - Product CRUD.
-- Cart operations.
+- Cart operations, including abandoned cart reactivation.
 - Stock validation.
-- Sales flow.
+- Sales checkout payload validation and sales flow.
 - Invoice creation.
 - Redis cache behavior where practical.
 

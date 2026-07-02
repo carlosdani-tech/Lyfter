@@ -1,5 +1,4 @@
-﻿from flask import Blueprint, request
-from flask.typing import ResponseReturnValue
+﻿from flask.typing import ResponseReturnValue
 from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
 
 from app.schemas.cart_schema import (
@@ -9,6 +8,7 @@ from app.schemas.cart_schema import (
 from app.services.auth_service import CLIENT_ROLE
 from app.services.cart_service import CartError, CartService
 from app.utils.responses import error_response, success_response
+from flask import Blueprint, request
 
 cart_bp = Blueprint("cart", __name__, url_prefix="/cart")
 
@@ -35,6 +35,50 @@ def get_active_cart():
 
     assert user_id is not None
     data = CartService.get_active_cart(user_id)
+    return success_response(data)
+
+
+@cart_bp.get("/history")
+@jwt_required()
+def list_cart_history():
+    user_id, error = _get_client_user_id()
+    if error:
+        return error
+
+    assert user_id is not None
+    data = CartService.list_cart_history(user_id)
+    return success_response(data)
+
+
+@cart_bp.post("/abandon")
+@jwt_required()
+def abandon_active_cart():
+    user_id, error = _get_client_user_id()
+    if error:
+        return error
+
+    assert user_id is not None
+    try:
+        data = CartService.abandon_active_cart(user_id)
+    except CartError as error:
+        return error_response(error.message, error.status_code)
+
+    return success_response(data)
+
+
+@cart_bp.post("/<int:cart_id>/reactivate")
+@jwt_required()
+def reactivate_cart(cart_id: int):
+    user_id, error = _get_client_user_id()
+    if error:
+        return error
+
+    assert user_id is not None
+    try:
+        data = CartService.reactivate_cart(user_id, cart_id)
+    except CartError as error:
+        return error_response(error.message, error.status_code)
+
     return success_response(data)
 
 

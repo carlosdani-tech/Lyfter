@@ -9,6 +9,16 @@ def _client_token(client, email: str = "client@example.com") -> str:
     return login_user(client, email)
 
 
+def _checkout_payload(**overrides):
+    payload = {
+        "billing_address": "123 Main St",
+        "payment_method": "credit_card",
+        "payment_reference": "mock_txn_123",
+    }
+    payload.update(overrides)
+    return payload
+
+
 def _create_product(**overrides) -> Product:
     data = {
         "name": "Dog Food",
@@ -241,3 +251,118 @@ def test_admin_cannot_access_client_cart(client):
 
     assert response.status_code == 403
 
+
+def test_client_can_abandon_active_cart(client):
+    token = _client_token(client)
+    active_response = client.get("/cart", headers=auth_header(token))
+    cart_id = active_response.get_json()["data"]["cart"]["id"]
+
+    response = client.post("/cart/abandon", headers=auth_header(token))
+
+    assert response.status_code == 200
+    assert response.get_json()["data"]["cart"]["status"] == "abandoned"
+    assert db.session.get(Cart, cart_id).status == "abandoned"
+
+    new_active_response = client.get("/cart", headers=auth_header(token))
+    new_cart = new_active_response.get_json()["data"]["cart"]
+    assert new_cart["id"] != cart_id
+    assert new_cart["status"] == "active"
+
+
+def test_client_can_reactivate_abandoned_cart(client):
+    token = _client_token(client)
+    product = _create_product(stock=5)
+    add_response = client.post(
+        "/cart/items",
+        json={"product_id": product.id, "quantity": 2},
+        headers=auth_header(token),
+    )
+    abandoned_cart_id = add_response.get_json()["data"]["cart"]["id"]
+    client.post("/cart/abandon", headers=auth_header(token))
+    active_response = client.get("/cart", headers=auth_header(token))
+    active_cart_id = active_response.get_json()["data"]["cart"]["id"]
+
+    response = client.post(
+        f"/cart/{abandoned_cart_id}/reactivate",
+        headers=auth_header(token),
+    )
+
+    assert response.status_code == 200
+    cart = response.get_json()["data"]["cart"]
+    assert cart["id"] == abandoned_cart_id
+    assert cart["status"] == "active"
+    assert db.session.get(Cart, active_cart_id).status == "abandoned"
+
+
+def test_client_cannot_reactivate_completed_cart(client):
+    token = _client_token(client)
+    product = _create_product(stock=5)
+    add_response = client.post(
+        "/cart/items",
+        json={"product_id": product.id, "quantity": 2},
+        headers=auth_header(token),
+    )
+    cart_id = add_response.get_json()["data"]["cart"]["id"]
+    checkout_response = client.post(
+        "/sales/checkout",
+        json=_checkout_payload(),
+        headers=auth_header(token),
+    )
+    assert checkout_response.status_code == 201
+
+    response = client.post(f"/cart/{cart_id}/reactivate", headers=auth_header(token))
+
+    assert response.status_code == 400
+    assert response.get_json()["error"]["message"] == "Completed carts cannot be reactivated."
+
+
+def test_client_cannot_reactivate_another_users_cart(client):
+    owner_token = _client_token(client, "owner-cart@example.com")
+    other_token = _client_token(client, "other-cart@example.com")
+    owner_cart_response = client.get("/cart", headers=auth_header(owner_token))
+    owner_cart_id = owner_cart_response.get_json()["data"]["cart"]["id"]
+    client.post("/cart/abandon", headers=auth_header(owner_token))
+
+    response = client.post(
+        f"/cart/{owner_cart_id}/reactivate",
+        headers=auth_header(other_token),
+    )
+
+    assert response.status_code == 403
+
+
+def test_reactivate_abandoned_cart_validates_stock(client):
+    token = _client_token(client)
+    product = _create_product(stock=2)
+    add_response = client.post(
+        "/cart/items",
+        json={"product_id": product.id, "quantity": 2},
+        headers=auth_header(token),
+    )
+    cart_id = add_response.get_json()["data"]["cart"]["id"]
+    client.post("/cart/abandon", headers=auth_header(token))
+    product.stock = 1
+    db.session.commit()
+
+    response = client.post(f"/cart/{cart_id}/reactivate", headers=auth_header(token))
+
+    assert response.status_code == 400
+    assert response.get_json()["error"]["message"] == (
+        "Quantity cannot be greater than available stock."
+    )
+
+
+def test_client_can_list_cart_history(client):
+    token = _client_token(client)
+    first_cart_response = client.get("/cart", headers=auth_header(token))
+    first_cart_id = first_cart_response.get_json()["data"]["cart"]["id"]
+    client.post("/cart/abandon", headers=auth_header(token))
+    second_cart_response = client.get("/cart", headers=auth_header(token))
+    second_cart_id = second_cart_response.get_json()["data"]["cart"]["id"]
+
+    response = client.get("/cart/history", headers=auth_header(token))
+
+    assert response.status_code == 200
+    carts = response.get_json()["data"]["carts"]
+    assert {cart["id"] for cart in carts} == {first_cart_id, second_cart_id}
+    assert {cart["status"] for cart in carts} == {"active", "abandoned"}

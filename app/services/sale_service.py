@@ -57,6 +57,9 @@ def serialize_invoice(invoice) -> dict:
             "subtotal_amount": _money(sale.subtotal_amount),
             "tax_amount": _money(sale.tax_amount),
             "total_amount": _money(sale.total_amount),
+            "billing_address": sale.billing_address,
+            "payment_method": sale.payment_method,
+            "payment_reference": sale.payment_reference,
             "items": [serialize_sale_item(item) for item in sale_items],
             "completed_at": sale.completed_at.isoformat() if sale.completed_at else None,
             "cancelled_at": sale.cancelled_at.isoformat() if sale.cancelled_at else None,
@@ -76,6 +79,9 @@ def serialize_sale(sale) -> dict:
         "subtotal_amount": _money(sale.subtotal_amount),
         "tax_amount": _money(sale.tax_amount),
         "total_amount": _money(sale.total_amount),
+        "billing_address": sale.billing_address,
+        "payment_method": sale.payment_method,
+        "payment_reference": sale.payment_reference,
         "items": [serialize_sale_item(item) for item in sale_items],
         "invoice": serialize_invoice(invoice) if invoice else None,
         "completed_at": sale.completed_at.isoformat() if sale.completed_at else None,
@@ -86,7 +92,7 @@ def serialize_sale(sale) -> dict:
 
 class SaleService:
     @staticmethod
-    def checkout(user_id: int) -> dict:
+    def checkout(user_id: int, payload: dict) -> dict:
         cart = CartRepository.get_active_by_user_id(user_id)
         if not cart:
             raise SaleError("Active cart has no items.", 400)
@@ -119,6 +125,9 @@ class SaleService:
                 subtotal_amount=subtotal,
                 tax_amount=tax_amount,
                 total_amount=total_amount,
+                billing_address=payload["billing_address"],
+                payment_method=payload["payment_method"],
+                payment_reference=payload["payment_reference"],
                 completed_at=now,
             )
 

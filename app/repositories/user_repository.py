@@ -1,10 +1,14 @@
 from typing import Any, cast
 
 from app.extensions import db
-from app.models import User
+from app.models import Role, User
 
 
 class UserRepository:
+    @staticmethod
+    def list_all() -> list[User]:
+        return db.session.query(User).order_by(User.id.asc()).all()
+
     @staticmethod
     def get_by_id(user_id: int) -> User | None:
         return db.session.get(User, user_id)
@@ -32,3 +36,26 @@ class UserRepository:
         db.session.add(user)
         db.session.flush()
         return user
+
+    @staticmethod
+    def update(user: User, **user_data) -> User:
+        for field, value in user_data.items():
+            setattr(user, field, value)
+
+        db.session.flush()
+        return user
+
+    @staticmethod
+    def deactivate(user: User) -> User:
+        user.is_active = False
+        db.session.flush()
+        return user
+
+    @staticmethod
+    def count_active_admins() -> int:
+        return (
+            db.session.query(User)
+            .join(Role, User.role_id == Role.id)
+            .filter(User.is_active.is_(True), Role.name == "admin")
+            .count()
+        )

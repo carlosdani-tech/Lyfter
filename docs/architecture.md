@@ -33,7 +33,7 @@ This project uses a layered Flask architecture.
 
 ## Implemented modules
 
-- Authentication, users, and roles for login, JWT identity, permissions, and ownership checks.
+- Authentication, users, and roles for login, JWT identity, admin management, permissions, and ownership checks.
 - Products.
 - Cart.
 - Sales.

@@ -1,10 +1,10 @@
-from flask import Blueprint, request
 from flask_jwt_extended import jwt_required
 
 from app.decorators.auth import admin_required, get_current_user
 from app.schemas.auth_schema import validate_login_payload, validate_register_payload
 from app.services.auth_service import AuthError, AuthService, serialize_user
 from app.utils.responses import error_response, success_response
+from flask import Blueprint, request
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 

@@ -1,10 +1,10 @@
 ﻿import json
 from typing import Any
 
-from flask import current_app
 from redis.exceptions import RedisError
 
 import app.extensions as extensions
+from flask import current_app
 
 
 def build_cache_key(*parts: object) -> str:

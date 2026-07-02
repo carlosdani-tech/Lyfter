@@ -1,9 +1,10 @@
-﻿from flask import Blueprint
-from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
+﻿from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
 
+from app.schemas.sale_schema import validate_checkout_payload
 from app.services.auth_service import ADMIN_ROLE, CLIENT_ROLE
 from app.services.sale_service import SaleError, SaleService
 from app.utils.responses import error_response, success_response
+from flask import Blueprint, request
 
 sales_bp = Blueprint("sales", __name__, url_prefix="/sales")
 
@@ -25,7 +26,10 @@ def checkout():
         return error_response("Client permission is required.", 403)
 
     try:
-        data = SaleService.checkout(user_id)
+        payload = validate_checkout_payload(request.get_json(silent=True))
+        data = SaleService.checkout(user_id, payload)
+    except ValueError as error:
+        return error_response("Invalid request payload.", 400, error.args[0])
     except SaleError as error:
         return error_response(error.message, error.status_code)
 

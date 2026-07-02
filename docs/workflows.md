@@ -72,10 +72,10 @@ Ask before:
 ## Recommended implementation order
 
 1. Database models and first migration.
-2. Authentication, users, and roles for login and permissions.
+2. Authentication, users, roles, and admin-only user management.
 3. Products.
-4. Cart.
-5. Sales checkout.
+4. Cart, including abandoned and reactivated cart flow.
+5. Sales checkout with billing and safe payment metadata.
 6. Invoices.
 7. Redis cache.
 8. Tests.

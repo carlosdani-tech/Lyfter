@@ -42,6 +42,16 @@ def _token(client, email: str, role: str) -> str:
     return login_user(client, email)
 
 
+def _checkout_payload(**overrides):
+    payload = {
+        "billing_address": "123 Main St",
+        "payment_method": "credit_card",
+        "payment_reference": "mock_txn_123",
+    }
+    payload.update(overrides)
+    return payload
+
+
 def _create_product(**overrides) -> Product:
     data = {
         "name": "Dog Food",
@@ -158,7 +168,11 @@ def test_product_cache_invalidates_after_checkout_stock_change(client, monkeypat
         json={"product_id": product.id, "quantity": 2},
         headers=auth_header(client_token),
     )
-    response = client.post("/sales/checkout", headers=auth_header(client_token))
+    response = client.post(
+        "/sales/checkout",
+        json=_checkout_payload(),
+        headers=auth_header(client_token),
+    )
 
     assert response.status_code == 201
     assert list_key not in fake_redis.store
