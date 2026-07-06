@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Formulario de Votación</title>
+</head>
+<body>
+
+    <header>
+        <h1>Formulario de Votación Nacional</h1>
+        <p>
+            Complete la información solicitada y seleccione el candidato de su preferencia.
+        </p>
+    </header>
+
+    <main>
+
+        <section>
+            <h2>Datos del votante</h2>
+
+            <form action="confirmacion.html" method="get">
+
+                <fieldset>
+                    <legend>Información personal</legend>
+
+                    <p>
+                        <label for="nombre">Nombre completo:</label><br>
+                        <input 
+                            type="text" 
+                            id="nombre" 
+                            name="nombre" 
+                            placeholder="Ingrese su nombre completo" 
+                            required
+                        >
+                    </p>
+
+                    <p>
+                        <label for="correo">Correo electrónico:</label><br>
+                        <input 
+                            type="email" 
+                            id="correo" 
+                            name="correo" 
+                            placeholder="ejemplo@correo.com" 
+                            required
+                        >
+                    </p>
+
+                    <p>
+                        <label for="identificacion">Número de identificación:</label><br>
+                        <input 
+                            type="text" 
+                            id="identificacion" 
+                            name="identificacion" 
+                            placeholder="Ingrese su número de identificación" 
+                            required
+                        >
+                    </p>
+
+                    <p>
+                        <label for="telefono">Teléfono:</label><br>
+                        <input 
+                            type="tel" 
+                            id="telefono" 
+                            name="telefono" 
+                            placeholder="Ingrese su número de teléfono" 
+                            required
+                        >
+                    </p>
+                </fieldset>
+
+                <br>
+
+                <fieldset>
+                    <legend>Selección de candidato</legend>
+
+                    <p>Seleccione uno de los siguientes candidatos:</p>
+
+                    <p>
+                        <input 
+                            type="radio" 
+                            id="candidato1" 
+                            name="Candidato" 
+                            value="Candidato #1" 
+                            required
+                        >
+                        <label for="candidato1">Candidato #1</label>
+                    </p>
+
+                    <p>
+                        <input 
+                            type="radio" 
+                            id="candidato2" 
+                            name="Candidato" 
+                            value="Candidato #2"
+                        >
+                        <label for="candidato2">Candidato #2</label>
+                    </p>
+
+                    <p>
+                        <input 
+                            type="radio" 
+                            id="candidato3" 
+                            name="Candidato" 
+                            value="Candidato #3"
+                        >
+                        <label for="candidato3">Candidato #3</label>
+                    </p>
+                </fieldset>
+
+                <br>
+
+                <p>
+                    <button type="submit">Confirmar voto</button>
+                    <button type="reset">Limpiar formulario</button>
+                </p>
+
+            </form>
+        </section>
+
+    </main>
+
+    <footer>
+        <p>Formulario creado como práctica de HTML.</p>
+    </footer>
+
+</body>
+</html>
