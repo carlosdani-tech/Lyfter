@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contact Form</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="contact-page">
+      <section class="contact-card">
+        <form class="contact-form" action="#" method="get">
+          <div class="small-line"></div>
+
+          <h1>Contact us!</h1>
+
+          <p class="contact-subtitle">Got something to say? Fire away!</p>
+
+          <input
+            type="text"
+            name="firstName"
+            placeholder="First name *"
+            required
+          />
+
+          <input
+            type="text"
+            name="lastName"
+            placeholder="Last name *"
+            required
+          />
+
+          <div class="input-icon">
+            <input
+              type="email"
+              name="email"
+              placeholder="Email address *"
+              required
+            />
+            <span>✉</span>
+          </div>
+
+          <div class="input-icon">
+            <select name="subject" required>
+              <option value="">What's your message about? *</option>
+              <option value="support">Support</option>
+              <option value="sales">Sales</option>
+              <option value="feedback">Feedback</option>
+              <option value="other">Other</option>
+            </select>
+            <span class="arrow-icon">˅</span>
+          </div>
+
+          <textarea
+            name="message"
+            placeholder="Fire away! *"
+            required
+          ></textarea>
+
+          <button type="submit">Send my message</button>
+        </form>
+
+        <div class="powered-by">
+          <span>Powered by</span>
+          <strong>✦ NetHunt CRM</strong>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
