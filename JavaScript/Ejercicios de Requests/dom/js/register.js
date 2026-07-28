@@ -4,11 +4,13 @@ const registerForm =
 const message =
   document.getElementById("message");
 
+if (localStorage.getItem("userId")) {
+  window.location.href = "./profile.html";
+}
 
 registerForm.addEventListener(
   "submit",
   async function (event) {
-
     event.preventDefault();
 
     const name =
@@ -30,21 +32,22 @@ registerForm.addEventListener(
     };
 
     try {
+      message.textContent = "Creando usuario...";
+      message.className = "loading";
+
       const createdUser =
         await createUser(newUser);
 
-      alert(
-        `Usuario creado correctamente. ` +
-        `Tu ID es: ${createdUser.id}`
+      localStorage.setItem(
+        "userId",
+        createdUser.id
       );
 
-      message.textContent =
-        `Guarde su ID: ${createdUser.id}`;
+      alert(
+        `Usuario creado correctamente. Tu ID es: ${createdUser.id}`
+      );
 
-      message.className = "success";
-
-      registerForm.reset();
-
+      window.location.href = "./profile.html";
     } catch (error) {
       message.textContent = error.message;
       message.className = "error";
