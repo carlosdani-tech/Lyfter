@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Buscar usuario</title>
+
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./script.js" defer></script>
+</head>
+
+<body>
+  <main class="container">
+    <h1>Buscar usuario</h1>
+
+    <form id="user-form">
+      <label for="user-id">
+        ID del usuario
+      </label>
+
+      <input
+        id="user-id"
+        type="number"
+        min="1"
+        placeholder="Ejemplo: 2"
+        required
+      >
+
+      <button type="submit">
+        Buscar
+      </button>
+    </form>
+
+    <p id="message" aria-live="polite"></p>
+
+    <section id="user-result" class="user-card hidden">
+      <div>
+        <h2 id="user-name"></h2>
+        <p id="user-email"></p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
