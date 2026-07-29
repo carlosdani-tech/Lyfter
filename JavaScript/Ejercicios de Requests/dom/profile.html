@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Mi Perfil</title>
+
+  <link rel="stylesheet" href="./css/styles.css">
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"
+    defer
+  ></script>
+
+  <script src="./js/api.js" defer></script>
+  <script src="./js/profile.js" defer></script>
+</head>
+
+<body>
+
+  <main class="container">
+
+    <h1>Mi Perfil</h1>
+
+    <section
+      id="profile-card"
+      class="card"
+    >
+      <h2 id="user-name">
+        Cargando...
+      </h2>
+
+      <p>
+        <strong>ID:</strong>
+        <span id="user-id"></span>
+      </p>
+
+      <p>
+        <strong>Correo:</strong>
+        <span id="user-email"></span>
+      </p>
+    </section>
+
+    <div class="actions">
+
+      <a
+        class="button-link"
+        href="./changePassword.html"
+      >
+        Cambiar contraseña
+      </a>
+
+      <button
+        id="logout-button"
+        class="danger"
+      >
+        Cerrar sesión
+      </button>
+
+    </div>
+
+    <p id="message"></p>
+
+  </main>
+
+</body>
+</html>
