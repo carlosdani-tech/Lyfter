@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lyfter Pet Store | Administrar producto</title>
+    <link rel="stylesheet" href="../css/main.css" />
+  </head>
+  <body>
+    <header class="site-header" data-navbar></header>
+    <main class="page-shell">
+      <div
+        class="state-message"
+        data-product-form-status
+        role="status"
+        aria-live="polite"
+      ></div>
+
+      <div data-product-form-root hidden>
+        <section class="page-heading">
+          <p class="eyebrow">Administración</p>
+          <h1 data-form-title>Producto</h1>
+          <p>
+            Completa la información del producto para mantener actualizado el
+            catálogo.
+          </p>
+        </section>
+
+        <form class="form-card product-admin-form" data-product-form novalidate>
+          <p
+            class="field-error"
+            data-form-error
+            role="alert"
+            aria-live="polite"
+          ></p>
+
+          <label class="field">
+            <span>Nombre</span>
+            <input
+              type="text"
+              name="name"
+              required
+              minlength="3"
+              aria-describedby="product-name-error"
+            />
+            <small
+              class="field-error"
+              id="product-name-error"
+              data-error-for="name"
+            ></small>
+          </label>
+
+          <label class="field">
+            <span>Descripción</span>
+            <textarea
+              name="description"
+              required
+              minlength="8"
+              aria-describedby="product-description-error"
+            ></textarea>
+            <small
+              class="field-error"
+              id="product-description-error"
+              data-error-for="description"
+            ></small>
+          </label>
+
+          <label class="field">
+            <span>Categoría</span>
+            <input
+              type="text"
+              name="category"
+              required
+              minlength="3"
+              aria-describedby="product-category-error"
+            />
+            <small
+              class="field-error"
+              id="product-category-error"
+              data-error-for="category"
+            ></small>
+          </label>
+
+          <label class="field">
+            <span>Precio</span>
+            <input
+              type="number"
+              name="price"
+              required
+              min="0.01"
+              step="0.01"
+              aria-describedby="product-price-error"
+            />
+            <small
+              class="field-error"
+              id="product-price-error"
+              data-error-for="price"
+            ></small>
+          </label>
+
+          <label class="field">
+            <span>Stock</span>
+            <input
+              type="number"
+              name="stock"
+              required
+              min="0"
+              step="1"
+              aria-describedby="product-stock-error"
+            />
+            <small
+              class="field-error"
+              id="product-stock-error"
+              data-error-for="stock"
+            ></small>
+          </label>
+
+          <label class="field">
+            <span>URL de imagen</span>
+            <input
+              type="url"
+              name="imageUrl"
+              aria-describedby="product-image-url-error"
+            />
+            <small
+              class="field-error"
+              id="product-image-url-error"
+              data-error-for="imageUrl"
+            ></small>
+          </label>
+
+          <div class="form-actions">
+            <button
+              class="button primary-button"
+              type="submit"
+              data-submit-button
+            >
+              Guardar
+            </button>
+            <a class="button secondary-button" href="./admin.html">Volver</a>
+          </div>
+        </form>
+      </div>
+    </main>
+    <footer class="site-footer">
+      <div class="footer-content">
+        <p>© Lyfter Pet Store 2026 — Todos los derechos reservados.</p>
+        <nav class="footer-links" aria-label="Secundaria">
+          <a href="./index.html">Inicio</a>
+          <a href="./index.html">Instagram</a>
+          <a href="./index.html">Facebook</a>
+        </nav>
+      </div>
+    </footer>
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/pages/editProductPage.js"></script>
+  </body>
+</html>

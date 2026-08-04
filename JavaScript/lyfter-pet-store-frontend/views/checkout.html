@@ -1,0 +1,193 @@
+﻿<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lyfter Pet Store | Finalizar compra</title>
+    <link rel="stylesheet" href="../css/main.css" />
+  </head>
+  <body>
+    <header class="site-header" data-navbar></header>
+    <main class="page-shell">
+      <section class="page-heading">
+        <p class="eyebrow">Finalizar compra</p>
+        <h1>Confirmar pedido</h1>
+        <p>Completa los datos necesarios para procesar la compra.</p>
+      </section>
+
+      <div
+        class="state-message"
+        data-checkout-status
+        role="status"
+        aria-live="polite"
+      ></div>
+
+      <section class="split-layout checkout-layout">
+        <form class="form-card" data-checkout-form novalidate>
+          <p
+            class="field-error"
+            data-form-error
+            role="alert"
+            aria-live="polite"
+          ></p>
+
+          <label class="field">
+            <span>Nombre completo</span>
+            <input
+              type="text"
+              name="fullName"
+              autocomplete="name"
+              required
+              minlength="3"
+              aria-describedby="checkout-full-name-error"
+            />
+            <small
+              class="field-error"
+              id="checkout-full-name-error"
+              data-error-for="fullName"
+            ></small>
+          </label>
+
+          <label class="field">
+            <span>Correo electrónico</span>
+            <input
+              type="email"
+              name="email"
+              autocomplete="email"
+              required
+              aria-describedby="checkout-email-error"
+            />
+            <small
+              class="field-error"
+              id="checkout-email-error"
+              data-error-for="email"
+            ></small>
+          </label>
+
+          <label class="field">
+            <span>Teléfono</span>
+            <input
+              type="tel"
+              name="phone"
+              autocomplete="tel"
+              required
+              minlength="8"
+              aria-describedby="checkout-phone-error"
+            />
+            <small
+              class="field-error"
+              id="checkout-phone-error"
+              data-error-for="phone"
+            ></small>
+          </label>
+
+          <label class="field">
+            <span>Dirección de facturación</span>
+            <textarea
+              name="billingAddress"
+              autocomplete="billing street-address"
+              required
+              minlength="8"
+              aria-describedby="checkout-billing-address-error"
+            ></textarea>
+            <small
+              class="field-error"
+              id="checkout-billing-address-error"
+              data-error-for="billingAddress"
+            ></small>
+          </label>
+
+          <label class="field">
+            <span>Dirección de envío</span>
+            <textarea
+              name="shippingAddress"
+              autocomplete="shipping street-address"
+              required
+              minlength="8"
+              aria-describedby="checkout-shipping-address-error"
+            ></textarea>
+            <small
+              class="field-error"
+              id="checkout-shipping-address-error"
+              data-error-for="shippingAddress"
+            ></small>
+          </label>
+
+          <label class="field">
+            <span>Método de pago</span>
+            <select
+              name="paymentMethod"
+              required
+              aria-describedby="checkout-payment-method-error"
+            >
+              <option value="">Selecciona una opción</option>
+              <option value="cash_on_delivery">Pago contra entrega</option>
+              <option value="bank_transfer">Transferencia bancaria</option>
+              <option value="card_reference">
+                Tarjeta registrada o referencia segura
+              </option>
+            </select>
+            <small
+              class="field-error"
+              id="checkout-payment-method-error"
+              data-error-for="paymentMethod"
+            ></small>
+          </label>
+
+          <label class="field">
+            <span>Referencia de pago o últimos 4 dígitos</span>
+            <input
+              type="text"
+              name="paymentReference"
+              inputmode="text"
+              maxlength="12"
+              pattern="[A-Za-z0-9-]{1,12}"
+              autocomplete="off"
+              aria-describedby="checkout-payment-reference-error"
+            />
+            <small
+              class="field-error"
+              id="checkout-payment-reference-error"
+              data-error-for="paymentReference"
+            ></small>
+          </label>
+
+          <button
+            class="button primary-button"
+            type="submit"
+            data-submit-button
+          >
+            Confirmar pedido
+          </button>
+        </form>
+
+        <aside class="panel summary-panel">
+          <h2>Resumen del pedido</h2>
+          <div class="checkout-summary-list" data-order-items></div>
+          <dl class="summary-list">
+            <div>
+              <dt>Subtotal</dt>
+              <dd data-order-subtotal>CRC 0</dd>
+            </div>
+            <div>
+              <dt>Total</dt>
+              <dd data-order-total>CRC 0</dd>
+            </div>
+          </dl>
+        </aside>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="footer-content">
+        <p>© Lyfter Pet Store 2026 — Todos los derechos reservados.</p>
+        <nav class="footer-links" aria-label="Secundaria">
+          <a href="./index.html">Inicio</a>
+          <a href="./index.html">Instagram</a>
+          <a href="./index.html">Facebook</a>
+        </nav>
+      </div>
+    </footer>
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/pages/checkoutPage.js"></script>
+  </body>
+</html>

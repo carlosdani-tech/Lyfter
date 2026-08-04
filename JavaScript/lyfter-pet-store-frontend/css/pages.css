@@ -1,0 +1,137 @@
+﻿.hero-section {
+  min-height: 52vh;
+  display: grid;
+  align-items: center;
+  padding-block: var(--space-7);
+}
+
+.hero-content {
+  max-width: 42rem;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.hero-actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.hero-content h1,
+.page-heading h1,
+.center-panel h1 {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 4rem);
+  line-height: 1;
+}
+
+.hero-content p,
+.page-heading p,
+.center-panel p {
+  color: var(--color-muted);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-secondary);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.media-placeholder {
+  min-height: 22rem;
+  border-radius: var(--radius-md);
+  border: 0.0625rem solid var(--color-border);
+  background: linear-gradient(135deg, #e4ece6, #f9efe0);
+}
+
+.detail-content {
+  display: grid;
+  align-content: center;
+  gap: var(--space-3);
+}
+
+.summary-panel {
+  align-self: start;
+}
+
+.center-panel {
+  min-height: 58vh;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  gap: var(--space-3);
+}
+
+.auth-note {
+  color: var(--color-muted);
+}
+
+.cart-layout {
+  align-items: start;
+}
+
+.admin-card-meta {
+  color: var(--color-muted);
+}
+
+.product-search-field {
+  max-width: 32rem;
+}
+
+.product-detail-media {
+  border-radius: var(--radius-md);
+  border: 0.0625rem solid var(--color-border);
+  overflow: hidden;
+}
+
+.product-detail-image {
+  min-height: 24rem;
+}
+
+.product-detail-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.product-detail-meta div {
+  padding: var(--space-4);
+  border: 0.0625rem solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.product-detail-meta dt {
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.product-detail-meta dd {
+  margin: var(--space-1) 0 0;
+  font-weight: 800;
+}
+
+.cart-items-list {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.cart-layout.is-restricted .summary-panel {
+  opacity: 0.7;
+}
+
+.checkout-layout {
+  align-items: start;
+}
+
+.checkout-success-panel {
+  justify-items: center;
+}
+
+.admin-table-panel {
+  gap: var(--space-4);
+  margin-top: 2rem;
+}

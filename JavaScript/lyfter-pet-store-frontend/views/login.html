@@ -1,0 +1,73 @@
+﻿<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lyfter Pet Store | Iniciar sesión</title>
+    <link rel="stylesheet" href="../css/main.css" />
+  </head>
+  <body>
+    <header class="site-header" data-navbar></header>
+    <main class="auth-shell">
+      <form class="form-card" data-login-form novalidate>
+        <p class="eyebrow">Cuenta</p>
+        <h1>Iniciar sesión</h1>
+        <p
+          class="field-error"
+          data-form-error
+          role="alert"
+          aria-live="polite"
+        ></p>
+        <label class="field">
+          <span>Correo electrónico</span>
+          <input
+            type="email"
+            name="email"
+            autocomplete="email"
+            required
+            aria-describedby="login-email-error"
+          />
+          <small
+            class="field-error"
+            id="login-email-error"
+            data-error-for="email"
+          ></small>
+        </label>
+        <label class="field">
+          <span>Contraseña</span>
+          <input
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            required
+            minlength="8"
+            aria-describedby="login-password-error"
+          />
+          <small
+            class="field-error"
+            id="login-password-error"
+            data-error-for="password"
+          ></small>
+        </label>
+        <button class="button primary-button" type="submit" data-submit-button>
+          Iniciar sesión
+        </button>
+        <p class="auth-note" data-guest-only>
+          ¿No tienes cuenta? <a href="./register.html">Regístrate</a>
+        </p>
+      </form>
+    </main>
+    <footer class="site-footer">
+      <div class="footer-content">
+        <p>© Lyfter Pet Store 2026 — Todos los derechos reservados.</p>
+        <nav class="footer-links" aria-label="Secundaria">
+          <a href="./index.html">Inicio</a>
+          <a href="./index.html">Instagram</a>
+          <a href="./index.html">Facebook</a>
+        </nav>
+      </div>
+    </footer>
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/pages/loginPage.js"></script>
+  </body>
+</html>
