@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lyfter Pet Store | Productos</title>
+    <link rel="stylesheet" href="../css/main.css" />
+  </head>
+  <body>
+    <header class="site-header" data-navbar></header>
+    <main class="page-shell">
+      <section class="page-heading">
+        <p class="eyebrow">Catálogo</p>
+        <h1>Productos</h1>
+        <p>
+          Explora los productos disponibles para el cuidado de tus mascotas.
+        </p>
+      </section>
+      <section class="toolbar" aria-label="Filtros de productos">
+        <label class="field product-search-field">
+          <span>Buscar</span>
+          <input
+            type="search"
+            name="search"
+            placeholder="Nombre o categoría"
+            data-product-search
+          />
+        </label>
+      </section>
+      <div
+        class="state-message"
+        data-products-status
+        role="status"
+        aria-live="polite"
+      ></div>
+      <section
+        class="product-grid"
+        data-products-list
+        aria-label="Lista de productos"
+      ></section>
+    </main>
+    <footer class="site-footer">
+      <div class="footer-content">
+        <p>© Lyfter Pet Store 2026 — Todos los derechos reservados.</p>
+        <nav class="footer-links" aria-label="Secundaria">
+          <a href="./index.html">Inicio</a>
+          <a href="./index.html">Instagram</a>
+          <a href="./index.html">Facebook</a>
+          <a href="./login.html" data-guest-only>Iniciar sesión</a>
+        </nav>
+      </div>
+    </footer>
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/pages/productsPage.js"></script>
+  </body>
+</html>

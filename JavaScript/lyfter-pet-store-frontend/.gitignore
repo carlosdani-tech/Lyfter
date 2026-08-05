@@ -1,0 +1,30 @@
+﻿# Environment
+.env
+.env.local
+
+# Dependencies if used later
+node_modules/
+
+# Build / cache
+dist/
+build/
+.cache/
+
+# Codex local files
+AGENTS.md
+.codex/
+.codex-*/
+.codex-log/
+*.codex.log
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.patch
+
+# Logs
+*.log

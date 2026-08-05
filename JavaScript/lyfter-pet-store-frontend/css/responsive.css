@@ -1,0 +1,43 @@
+﻿@media (min-width: 48rem) {
+  .split-layout {
+    grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+  }
+
+  .detail-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 48rem) {
+  .navbar,
+  .footer-content {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .nav-links {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .page-shell,
+  .auth-shell {
+    padding-block: var(--space-6);
+  }
+}
+
+@media (max-width: 34rem) {
+  .nav-links a,
+  .nav-link-button,
+  .button {
+    width: 100%;
+  }
+
+  .hero-actions {
+    width: 100%;
+  }
+
+  .form-card {
+    padding: var(--space-5);
+  }
+}

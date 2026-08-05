@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lyfter Pet Store | Carrito</title>
+    <link rel="stylesheet" href="../css/main.css" />
+  </head>
+  <body>
+    <header class="site-header" data-navbar></header>
+    <main class="page-shell">
+      <section class="page-heading">
+        <p class="eyebrow">Compra</p>
+        <h1>Carrito</h1>
+        <p>Revisa tus productos antes de finalizar la compra.</p>
+      </section>
+      <div
+        class="state-message"
+        data-cart-status
+        role="status"
+        aria-live="polite"
+      ></div>
+      <section class="split-layout cart-layout" data-cart-content>
+        <div class="cart-items-list" data-cart-items></div>
+        <aside class="panel summary-panel" data-cart-summary>
+          <h2>Resumen</h2>
+          <dl class="summary-list">
+            <div>
+              <dt>Subtotal</dt>
+              <dd data-cart-subtotal>CRC 0</dd>
+            </div>
+            <div>
+              <dt>Total</dt>
+              <dd data-cart-total>CRC 0</dd>
+            </div>
+          </dl>
+          <a
+            class="button primary-button"
+            href="./checkout.html"
+            data-checkout-link
+            >Finalizar compra</a
+          >
+        </aside>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="footer-content">
+        <p>© Lyfter Pet Store 2026 — Todos los derechos reservados.</p>
+        <nav class="footer-links" aria-label="Secundaria">
+          <a href="./index.html">Inicio</a>
+          <a href="./index.html">Instagram</a>
+          <a href="./index.html">Facebook</a>
+          <a href="./login.html" data-guest-only>Iniciar sesión</a>
+        </nav>
+      </div>
+    </footer>
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/pages/cartPage.js"></script>
+  </body>
+</html>

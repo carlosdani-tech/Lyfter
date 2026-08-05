@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lyfter Pet Store | Registro</title>
+    <link rel="stylesheet" href="../css/main.css" />
+  </head>
+  <body>
+    <header class="site-header" data-navbar></header>
+    <main class="auth-shell" data-guest-only>
+      <form class="form-card" data-register-form novalidate>
+        <p class="eyebrow">Cuenta</p>
+        <h1>Crear cuenta</h1>
+        <p
+          class="field-error"
+          data-form-error
+          role="alert"
+          aria-live="polite"
+        ></p>
+        <label class="field">
+          <span>Nombre completo</span>
+          <input
+            type="text"
+            name="name"
+            autocomplete="name"
+            required
+            minlength="2"
+            aria-describedby="register-name-error"
+          />
+          <small
+            class="field-error"
+            id="register-name-error"
+            data-error-for="name"
+          ></small>
+        </label>
+        <label class="field">
+          <span>Correo electrónico</span>
+          <input
+            type="email"
+            name="email"
+            autocomplete="email"
+            required
+            aria-describedby="register-email-error"
+          />
+          <small
+            class="field-error"
+            id="register-email-error"
+            data-error-for="email"
+          ></small>
+        </label>
+        <label class="field">
+          <span>Contraseña</span>
+          <input
+            type="password"
+            name="password"
+            autocomplete="new-password"
+            required
+            minlength="8"
+            aria-describedby="register-password-error"
+          />
+          <small
+            class="field-error"
+            id="register-password-error"
+            data-error-for="password"
+          ></small>
+        </label>
+        <label class="field">
+          <span>Confirmar contraseña</span>
+          <input
+            type="password"
+            name="passwordConfirmation"
+            autocomplete="new-password"
+            required
+            minlength="8"
+            aria-describedby="register-password-confirmation-error"
+          />
+          <small
+            class="field-error"
+            id="register-password-confirmation-error"
+            data-error-for="passwordConfirmation"
+          ></small>
+        </label>
+        <button class="button primary-button" type="submit" data-submit-button>
+          Registrarme
+        </button>
+        <p class="auth-note">
+          ¿Ya tienes cuenta? <a href="./login.html">Inicia sesión</a>
+        </p>
+      </form>
+    </main>
+    <footer class="site-footer">
+      <div class="footer-content">
+        <p>© Lyfter Pet Store 2026 — Todos los derechos reservados.</p>
+        <nav class="footer-links" aria-label="Secundaria">
+          <a href="./index.html">Inicio</a>
+          <a href="./index.html">Instagram</a>
+          <a href="./index.html">Facebook</a>
+        </nav>
+      </div>
+    </footer>
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/pages/registerPage.js"></script>
+  </body>
+</html>
