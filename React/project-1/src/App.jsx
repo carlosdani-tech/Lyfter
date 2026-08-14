@@ -114,8 +114,13 @@ function App() {
                   Mostrar solo disponibles
                 </label>
               </section>
+              {products.length === 0 ? (
+                <section className="empty-products">
+                  <div className="empty-products__icon">☹</div>
 
-              {filteredProducts.length === 0 ? (
+                  <h2>No hay productos disponibles por el momento.</h2>
+                </section>
+              ) : filteredProducts.length === 0 ? (
                 <section className="empty-products">
                   <div className="empty-products__icon">☹</div>
 

@@ -5,7 +5,7 @@
     "descripcion": "Collar resistente para perros de todos los tamaños.",
     "precio": 8500,
     "categoria": "Perros",
-    "imagen": "https://elements-resized.envatousercontent.com/elements-cover-images/673657f2-9002-41fc-8792-48b474db5a9d?w=433&cf_fit=scale-down&q=85&format=auto&s=504e45db749cf4271b0402fd2babe8e68debf75cc027a298386cc114eaf0b2ab",
+    "imagen": "https://via.placeholder.com/300x300.png?text=Collar+de+cuero",
     "stock": 12
   },
   {
@@ -14,7 +14,7 @@
     "descripcion": "Cama acolchada y cómoda para gatos de interior.",
     "precio": 12000,
     "categoria": "Gatos",
-    "imagen": "https://cdn.pacifiko.com/image/cache/catalog/p/NmM4YmU2OG-500x500.jpg",
+    "imagen": "https://via.placeholder.com/300x300.png?text=Cama+para+gatos",
     "stock": 5
   },
   {
@@ -23,7 +23,7 @@
     "descripcion": "Pelota duradera ideal para juegos al aire libre.",
     "precio": 2500,
     "categoria": "Perros",
-    "imagen": "https://mascotasgo.com/wp-content/uploads/2024/01/Plantilla-productos-web-700x800-F.pptx-11.jpg",
+    "imagen": "https://via.placeholder.com/300x300.png?text=Pelota+de+goma",
     "stock": 30
   },
   {
@@ -32,7 +32,7 @@
     "descripcion": "Rascador vertical que ayuda a cuidar las uñas de tu gato.",
     "precio": 15000,
     "categoria": "Gatos",
-    "imagen": "https://guaw.com/59923/rascador-para-gatos-bold-glint-color-beige.jpg",
+    "imagen": "https://via.placeholder.com/300x300.png?text=Rascador",
     "stock": 7
   },
   {
@@ -41,7 +41,7 @@
     "descripcion": "Casita resistente para exteriores, ideal para climas lluviosos.",
     "precio": 28000,
     "categoria": "Perros",
-    "imagen": "https://bsecommerceprod.blob.core.windows.net/magento/catalog/product/cache/bc9e311e664dbb5929888a78159490c8/1/5/1505150691973-a.jpg",
+    "imagen": "https://via.placeholder.com/300x300.png?text=Casita",
     "stock": 3
   },
   {
@@ -50,7 +50,7 @@
     "descripcion": "Arenero cerrado que ayuda a controlar los olores.",
     "precio": 18000,
     "categoria": "Gatos",
-    "imagen": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQsy5h7K4xPqGbMXVUuuklrHumai3G1Zw9T5jVfHl4GN_rmzpK44AqwHzom&s=10",
+    "imagen": "https://via.placeholder.com/300x300.png?text=Arenero",
     "stock": 10
   },
   {
@@ -59,7 +59,7 @@
     "descripcion": "Correa de 5 metros ideal para paseos largos.",
     "precio": 7000,
     "categoria": "Perros",
-    "imagen": "https://newmascotabaricentro.es/cdn/shop/files/5B70E304-3183-4962-BAB1-27017603AC0D.jpg?v=1709991371&width=1946",
+    "imagen": "https://via.placeholder.com/300x300.png?text=Correa",
     "stock": 20
   },
   {
@@ -68,7 +68,7 @@
     "descripcion": "Plato doble para agua y comida, fácil de limpiar.",
     "precio": 5000,
     "categoria": "Accesorios",
-    "imagen": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS5qgjoBsSDAr24YvbOQQA0atiSSI9Du5d7g3tnyV_zaMXAyLq3HpBzDOQ&s=10",
+    "imagen": "https://via.placeholder.com/300x300.png?text=Plato+doble",
     "stock": 25
   }
 ]
