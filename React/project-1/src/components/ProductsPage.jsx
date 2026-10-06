@@ -2,6 +2,7 @@ import Loading from "./Loading";
 
 function ProductsPage({
   loading,
+  productError,
   products,
   filteredProducts,
   search,
@@ -9,11 +10,31 @@ function ProductsPage({
   setSearch,
   setOnlyAvailable,
   showProductDetail,
+  retryLoadProducts,
 }) {
   if (loading) {
     return (
       <main className="products-page">
         <Loading message="Cargando productos..." />
+      </main>
+    );
+  }
+
+  if (productError) {
+    return (
+      <main className="products-page">
+        <section className="empty-products">
+          <div className="empty-products__icon">:(</div>
+          <h2>No se pudieron cargar los productos</h2>
+          <p>{productError}</p>
+          <button
+            type="button"
+            className="product-card__button"
+            onClick={retryLoadProducts}
+          >
+            Reintentar
+          </button>
+        </section>
       </main>
     );
   }
@@ -42,16 +63,13 @@ function ProductsPage({
       {products.length === 0 ? (
         <section className="empty-products">
           <div className="empty-products__icon">:(</div>
-
           <h2>No hay productos disponibles por el momento.</h2>
         </section>
       ) : filteredProducts.length === 0 ? (
         <section className="empty-products">
           <div className="empty-products__icon">:(</div>
-
           <h2>No se encontraron productos</h2>
-
-          <p>Intenta cambiar los filtros o la b&uacute;squeda.</p>
+          <p>Intenta cambiar los filtros o la búsqueda.</p>
         </section>
       ) : (
         <section className="catalog">
@@ -61,17 +79,17 @@ function ProductsPage({
             {filteredProducts.map((product) => (
               <article className="product-card" key={product.id}>
                 <img
-                  src={product.imagen}
-                  alt={product.nombre}
+                  src={product.image_url || "/paw.png"}
+                  alt={product.name}
                   className="product-card__image"
                 />
 
                 <div className="product-card__content">
-                  <h2>{product.nombre}</h2>
-
-                  <p className="product-card__price">₡{product.precio}</p>
-
-                  <p className="product-card__category">{product.categoria}</p>
+                  <h2>{product.name}</h2>
+                  <p className="product-card__price">₡{product.price}</p>
+                  <p className="product-card__category">
+                    {product.category || "Sin categoría"}
+                  </p>
 
                   <button
                     type="button"

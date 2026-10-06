@@ -3,6 +3,7 @@ import ProductForm from "./ProductForm";
 
 function AdminPage({
   loading,
+  productError,
   products,
   productForm,
   formError,
@@ -11,11 +12,14 @@ function AdminPage({
   deleteProduct,
   handleProductFormChange,
   handleAddProduct,
+  retryLoadProducts,
+  mutationLoading,
+  deactivatingProductId,
 }) {
   if (loading) {
     return (
       <main className="admin-page">
-        <Loading message="Cargando panel de administracion..." />
+        <Loading message="Cargando panel de administración..." />
       </main>
     );
   }
@@ -24,15 +28,26 @@ function AdminPage({
     <main className="admin-page">
       <section className="admin-panel">
         <h1>Administración de productos</h1>
-
         <p>
           En esta sección puedes gestionar el catálogo de productos de PawStore.
         </p>
 
-        {products.length === 0 ? (
+        {productError ? (
           <section className="empty-products">
             <div className="empty-products__icon">:(</div>
-
+            <h2>No se pudieron cargar los productos</h2>
+            <p>{productError}</p>
+            <button
+              type="button"
+              className="product-card__button"
+              onClick={retryLoadProducts}
+            >
+              Reintentar
+            </button>
+          </section>
+        ) : products.length === 0 ? (
+          <section className="empty-products">
+            <div className="empty-products__icon">:(</div>
             <h2>No hay productos disponibles por el momento.</h2>
           </section>
         ) : (
@@ -53,11 +68,11 @@ function AdminPage({
                 {products.map((product) => (
                   <tr key={product.id}>
                     <td>{formatAdminId(product.id)}</td>
-                    <td>{product.nombre}</td>
-                    <td>₡{product.precio}</td>
+                    <td>{product.name}</td>
+                    <td>₡{product.price}</td>
                     <td>
                       <span className="admin-table__tag">
-                        {product.categoria}
+                        {product.category || "Sin categoría"}
                       </span>
                     </td>
                     <td>{product.stock}</td>
@@ -67,16 +82,21 @@ function AdminPage({
                           type="button"
                           className="admin-table__edit"
                           onClick={() => openEditProduct(product)}
+                          disabled={mutationLoading}
                         >
                           Editar
                         </button>
-
                         <button
                           type="button"
                           className="admin-table__delete"
-                          onClick={() => deleteProduct(product.id)}
+                          onClick={() => deleteProduct(product)}
+                          disabled={
+                            mutationLoading || deactivatingProductId !== null
+                          }
                         >
-                          Eliminar
+                          {deactivatingProductId === product.id
+                            ? "Eliminando..."
+                            : "Eliminar"}
                         </button>
                       </div>
                     </td>
@@ -90,13 +110,14 @@ function AdminPage({
 
       <section className="admin-form-card">
         <h2>Agregar nuevo producto</h2>
-
         <ProductForm
           productForm={productForm}
           formError={formError}
           onChange={handleProductFormChange}
           onSubmit={handleAddProduct}
-          submitLabel="Agregar producto"
+          submitLabel={mutationLoading ? "Agregando..." : "Agregar producto"}
+          disabled={mutationLoading}
+          disableNativeValidation
         />
       </section>
     </main>
