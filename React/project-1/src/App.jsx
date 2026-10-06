@@ -1,12 +1,29 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import HomePage from "./components/HomePage";
+import ProductsPage from "./components/ProductsPage";
+import ProductDetailPage from "./components/ProductDetailPage";
+import AdminPage from "./components/AdminPage";
+import EditProductPage from "./components/EditProductPage";
 import productsData from "./data/products.json";
+
+const emptyProductForm = {
+  nombre: "",
+  descripcion: "",
+  precio: "",
+  categoria: "",
+  imagen: "",
+  stock: "",
+};
 
 function App() {
   const [view, setView] = useState("home");
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState(productsData);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [productForm, setProductForm] = useState(emptyProductForm);
+  const [formError, setFormError] = useState("");
 
   const [search, setSearch] = useState("");
   const [onlyAvailable, setOnlyAvailable] = useState(false);
@@ -17,14 +34,9 @@ function App() {
     setLoading(true);
 
     setTimeout(() => {
-      setProducts(productsData);
       setLoading(false);
     }, 700);
   };
-
-  useEffect(() => {
-    setProducts(productsData);
-  }, []);
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.nombre
@@ -44,6 +56,117 @@ function App() {
   const goHome = () => {
     setView("home");
     setSelectedProduct(null);
+    setEditingProduct(null);
+    setFormError("");
+  };
+
+  const loadAdmin = () => {
+    setView("admin");
+    setLoading(true);
+    setEditingProduct(null);
+    setFormError("");
+    setProductForm(emptyProductForm);
+
+    setTimeout(() => {
+      setLoading(false);
+    }, 700);
+  };
+
+  const formatAdminId = (id) => `PAW${String(id).padStart(3, "0")}`;
+
+  const openEditProduct = (product) => {
+    setEditingProduct(product);
+    setProductForm({
+      nombre: product.nombre,
+      descripcion: product.descripcion,
+      precio: String(product.precio),
+      categoria: product.categoria,
+      imagen: product.imagen,
+      stock: String(product.stock),
+    });
+    setFormError("");
+    setView("edit-product");
+  };
+
+  const handleProductFormChange = (event) => {
+    const { name, value } = event.target;
+
+    setProductForm((currentForm) => ({
+      ...currentForm,
+      [name]: value,
+    }));
+  };
+
+  const hasEmptyProductField = () =>
+    Object.values(productForm).some((value) => String(value).trim() === "");
+
+  const createProductFromForm = (id) => ({
+    id,
+    nombre: productForm.nombre,
+    descripcion: productForm.descripcion,
+    precio: Number(productForm.precio),
+    categoria: productForm.categoria,
+    imagen: productForm.imagen,
+    stock: Number(productForm.stock),
+  });
+
+  const handleAddProduct = (event) => {
+    event.preventDefault();
+
+    if (hasEmptyProductField()) {
+      setFormError("Por favor completa todos los campos antes de agregar el producto.");
+      return;
+    }
+
+    const nextId =
+      products.length === 0
+        ? 1
+        : Math.max(...products.map((product) => product.id)) + 1;
+
+    setProducts((currentProducts) => [
+      ...currentProducts,
+      createProductFromForm(nextId),
+    ]);
+    setProductForm(emptyProductForm);
+    setFormError("");
+  };
+
+  const handleSaveProduct = (event) => {
+    event.preventDefault();
+
+    if (hasEmptyProductField()) {
+      setFormError("Por favor completa todos los campos antes de guardar los cambios.");
+      return;
+    }
+
+    const updatedProduct = createProductFromForm(editingProduct.id);
+
+    setProducts((currentProducts) =>
+      currentProducts.map((product) =>
+        product.id === editingProduct.id ? updatedProduct : product,
+      ),
+    );
+
+    setSelectedProduct((currentProduct) =>
+      currentProduct?.id === editingProduct.id ? updatedProduct : currentProduct,
+    );
+    setEditingProduct(null);
+    setFormError("");
+    setView("admin");
+  };
+
+  const deleteProduct = (productId) => {
+    setProducts((currentProducts) =>
+      currentProducts.filter((product) => product.id !== productId),
+    );
+
+    if (selectedProduct?.id === productId) {
+      setSelectedProduct(null);
+
+      if (view === "detail") {
+        setView("products");
+      }
+    }
   };
 
   return (
@@ -52,165 +175,53 @@ function App() {
         view={view}
         goHome={goHome}
         loadProducts={loadProducts}
+        loadAdmin={loadAdmin}
       />
 
-      {view === "home" && (
-        <main className="home">
-          <section className="home__content">
-            <h1>Bienvenido a PawStore</h1>
-
-            <p>
-              Somos una tienda dedicada a ofrecer productos de calidad para tus
-              mascotas.
-            </p>
-
-            <p>
-              Explora nuestro catálogo para encontrar camas, juguetes,
-              accesorios y más.
-            </p>
-
-            <button
-              className="home__link"
-              type="button"
-              onClick={loadProducts}
-            >
-              Ver productos
-            </button>
-
-            <p className="home__description">
-              Esta es la página principal de la aplicación. Más adelante aquí
-              se podrán mostrar productos destacados.
-            </p>
-          </section>
-        </main>
-      )}
+      {view === "home" && <HomePage loadProducts={loadProducts} />}
 
       {view === "products" && (
-        <main className="products-page">
-          {loading ? (
-            <section className="loading">
-              <div className="spinner"></div>
-              <h2>Cargando productos...</h2>
-            </section>
-          ) : (
-            <>
-              <section className="products-filters">
-                <input
-                  type="search"
-                  placeholder="Buscar producto..."
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                />
-
-                <label className="available-filter">
-                  <input
-                    type="checkbox"
-                    checked={onlyAvailable}
-                    onChange={(event) =>
-                      setOnlyAvailable(event.target.checked)
-                    }
-                  />
-
-                  Mostrar solo disponibles
-                </label>
-              </section>
-              {products.length === 0 ? (
-                <section className="empty-products">
-                  <div className="empty-products__icon">☹</div>
-
-                  <h2>No hay productos disponibles por el momento.</h2>
-                </section>
-              ) : filteredProducts.length === 0 ? (
-                <section className="empty-products">
-                  <div className="empty-products__icon">☹</div>
-
-                  <h2>No se encontraron productos</h2>
-
-                  <p>Intenta cambiar los filtros o la búsqueda.</p>
-                </section>
-              ) : (
-                <section className="catalog">
-                  <h1>Catálogo de productos</h1>
-
-                  <div className="products-grid">
-                    {filteredProducts.map((product) => (
-                      <article className="product-card" key={product.id}>
-                        <img
-                          src={product.imagen}
-                          alt={product.nombre}
-                          className="product-card__image"
-                        />
-
-                        <div className="product-card__content">
-                          <h2>{product.nombre}</h2>
-
-                          <p className="product-card__price">
-                            ₡{product.precio}
-                          </p>
-
-                          <p className="product-card__category">
-                            {product.categoria}
-                          </p>
-
-                          <button
-                            type="button"
-                            className="product-card__button"
-                            onClick={() => showProductDetail(product)}
-                          >
-                            Ver detalles
-                          </button>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              )}
-            </>
-          )}
-        </main>
+        <ProductsPage
+          loading={loading}
+          products={products}
+          filteredProducts={filteredProducts}
+          search={search}
+          onlyAvailable={onlyAvailable}
+          setSearch={setSearch}
+          setOnlyAvailable={setOnlyAvailable}
+          showProductDetail={showProductDetail}
+        />
       )}
 
       {view === "detail" && selectedProduct && (
-        <main className="product-detail-page">
-          <section className="product-detail">
-            <div className="product-detail__image-container">
-              <img
-                src={selectedProduct.imagen}
-                alt={selectedProduct.nombre}
-                className="product-detail__image"
-              />
-            </div>
+        <ProductDetailPage
+          selectedProduct={selectedProduct}
+          loadProducts={loadProducts}
+        />
+      )}
 
-            <div className="product-detail__content">
-              <h1>{selectedProduct.nombre}</h1>
+      {view === "admin" && (
+        <AdminPage
+          loading={loading}
+          products={products}
+          productForm={productForm}
+          formError={formError}
+          formatAdminId={formatAdminId}
+          openEditProduct={openEditProduct}
+          deleteProduct={deleteProduct}
+          handleProductFormChange={handleProductFormChange}
+          handleAddProduct={handleAddProduct}
+        />
+      )}
 
-              <p className="product-detail__price">
-                ₡{selectedProduct.precio}
-              </p>
-
-              <p className="product-detail__category">
-                {selectedProduct.categoria}
-              </p>
-
-              <p className="product-detail__description">
-                {selectedProduct.descripcion}
-              </p>
-
-              <p className="product-detail__message">
-                Más adelante aquí se podrá agregar este producto al carrito y
-                completar la compra.
-              </p>
-
-              <button
-                type="button"
-                className="product-detail__button"
-                onClick={loadProducts}
-              >
-                Volver al catálogo
-              </button>
-            </div>
-          </section>
-        </main>
+      {view === "edit-product" && editingProduct && (
+        <EditProductPage
+          productForm={productForm}
+          formError={formError}
+          handleProductFormChange={handleProductFormChange}
+          handleSaveProduct={handleSaveProduct}
+          loadAdmin={loadAdmin}
+        />
       )}
 
       <Footer />

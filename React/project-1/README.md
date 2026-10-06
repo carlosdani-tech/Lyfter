@@ -1,204 +1,383 @@
 # PawStore
 
-PawStore es una aplicación web desarrollada con React y JavaScript que simula el catálogo de una tienda de productos para mascotas.
+PawStore es una aplicacion web desarrollada con React y JavaScript que simula el catalogo de una tienda de productos para mascotas.
 
-El proyecto tiene como objetivo aplicar conceptos fundamentales de React, incluyendo la creación de componentes reutilizables, manejo de estados, renderizado dinámico de información, eventos, filtrado de datos y organización de una interfaz en diferentes vistas.
+El proyecto permite consultar productos desde una vitrina publica y tambien administrar el inventario desde una seccion llamada **Administracion**. Los datos iniciales provienen de un archivo JSON local, pero durante la ejecucion de la aplicacion el inventario se manipula mediante estado de React.
 
-Los productos utilizados por la aplicación se almacenan localmente en un archivo JSON y son procesados dinámicamente para generar el catálogo.
+## Objetivo del proyecto
 
-## Funcionalidades
+El objetivo principal es aplicar conceptos fundamentales de React:
 
-La aplicación incluye las siguientes funcionalidades:
+- Creacion de componentes reutilizables.
+- Manejo de estado con `useState`.
+- Renderizado condicional de vistas.
+- Renderizado dinamico de listas.
+- Manejo de eventos.
+- Formularios controlados.
+- Filtrado de datos.
+- Operaciones CRUD basicas en memoria.
+- Organizacion del codigo en componentes.
 
-* Página principal con información introductoria sobre la tienda.
-* Catálogo dinámico de productos.
-* Carga de información desde un archivo JSON local.
-* Búsqueda de productos por nombre.
-* Filtro para mostrar únicamente productos disponibles.
-* Indicador visual durante la carga del catálogo.
-* Vista informativa cuando no existen productos que coincidan con los criterios de búsqueda.
-* Consulta individual de los detalles de cada producto.
-* Visualización del nombre, descripción, precio, categoría, imagen y stock de cada producto.
-* Navegación entre la página principal, el catálogo y el detalle de los productos.
-* Diseño adaptable a diferentes tamaños de pantalla.
-* Componentes reutilizables para elementos comunes de la interfaz, como el encabezado y el pie de página.
+## Funcionalidades implementadas
 
-## Tecnologías utilizadas
+La aplicacion incluye:
 
-El proyecto fue desarrollado utilizando las siguientes tecnologías y herramientas:
+- Pagina de inicio con informacion introductoria.
+- Catalogo dinamico de productos.
+- Carga inicial de productos desde `src/data/products.json`.
+- Busqueda de productos por nombre.
+- Filtro para mostrar solo productos disponibles.
+- Indicador visual de carga.
+- Mensaje cuando no hay productos o no existen coincidencias.
+- Vista de detalle para cada producto.
+- Visualizacion de nombre, descripcion, precio, categoria, imagen y stock.
+- Seccion de administracion.
+- Listado administrativo de productos.
+- Formulario para agregar productos.
+- Pantalla separada para editar productos.
+- Eliminacion de productos.
+- Actualizacion inmediata del catalogo al agregar, editar o eliminar.
+- Manejo del inventario en memoria mientras la aplicacion esta abierta.
+- Diseno adaptable para diferentes tamanos de pantalla.
 
-* React
-* JavaScript
-* JSX
-* CSS3
-* Vite
-* JSON
-* ESLint
-* Node.js y npm para la gestión de dependencias
+## Tecnologias utilizadas
+
+- React
+- JavaScript
+- JSX
+- CSS3
+- Vite
+- JSON
+- ESLint
+- Node.js
+- npm
 
 ## Estructura del proyecto
 
 ```text
 project-1/
-├── public/
-├── src/
-│   ├── assets/
-│   ├── components/
-│   │   ├── Header.jsx
-│   │   └── Footer.jsx
-│   ├── data/
-│   │   └── products.json
-│   ├── App.jsx
-│   ├── index.css
-│   └── main.jsx
-├── .gitignore
-├── eslint.config.js
-├── index.html
-├── package-lock.json
-├── package.json
-├── README.md
-└── vite.config.js
+|-- public/
+|   `-- paw.png
+|-- src/
+|   |-- components/
+|   |   |-- AdminPage.jsx
+|   |   |-- EditProductPage.jsx
+|   |   |-- Footer.jsx
+|   |   |-- Header.jsx
+|   |   |-- HomePage.jsx
+|   |   |-- Loading.jsx
+|   |   |-- ProductDetailPage.jsx
+|   |   |-- ProductForm.jsx
+|   |   `-- ProductsPage.jsx
+|   |-- data/
+|   |   `-- products.json
+|   |-- App.jsx
+|   |-- index.css
+|   `-- main.jsx
+|-- eslint.config.js
+|-- index.html
+|-- package-lock.json
+|-- package.json
+|-- README.md
+`-- vite.config.js
 ```
 
 ## Fuente de datos
 
-La información de los productos se encuentra almacenada en el archivo:
+Los productos iniciales estan definidos en:
 
 ```text
 src/data/products.json
 ```
 
-Cada producto contiene una estructura similar a la siguiente:
+Cada producto tiene una estructura similar a:
 
 ```json
 {
   "id": 1,
   "nombre": "Collar de cuero",
-  "descripcion": "Collar resistente para perros de todos los tamaños.",
+  "descripcion": "Collar resistente para perros de todos los tamanos.",
   "precio": 8500,
   "categoria": "Perros",
-  "imagen": "URL de la imagen",
+  "imagen": "https://via.placeholder.com/300x300.png?text=Collar+de+cuero",
   "stock": 12
 }
 ```
 
-Estos datos son importados por la aplicación y utilizados para generar dinámicamente el catálogo de productos.
+El archivo JSON funciona como inventario inicial. Al iniciar la aplicacion, esos datos se cargan en el estado de React:
 
-## Instalación y ejecución
-
-Para ejecutar el proyecto localmente es necesario contar con Node.js y npm instalados.
-
-### 1. Clonar el repositorio
-
-```bash
-git clone URL_DEL_REPOSITORIO
+```js
+const [products, setProducts] = useState(productsData);
 ```
 
-### 2. Acceder al directorio del proyecto
+A partir de ese momento, las operaciones de agregar, editar y eliminar modifican el estado `products`, no el archivo JSON.
 
-```bash
-cd project-1
+## Persistencia de datos
+
+Esta etapa no incluye persistencia permanente.
+
+Eso significa:
+
+- Los cambios existen solo mientras la aplicacion esta abierta.
+- No se modifica `products.json`.
+- No se usa backend.
+- No se usa base de datos.
+- No se usa `localStorage`.
+- Si se recarga la pagina, el catalogo vuelve al contenido original del JSON.
+
+## Funcionamiento general
+
+La aplicacion se organiza alrededor de `App.jsx`.
+
+`App.jsx` mantiene el estado principal:
+
+- `view`: vista actual de la aplicacion.
+- `products`: catalogo activo en memoria.
+- `selectedProduct`: producto seleccionado para detalle.
+- `editingProduct`: producto que se esta editando.
+- `productForm`: datos actuales del formulario.
+- `formError`: mensaje de error para formularios.
+- `search`: texto de busqueda.
+- `onlyAvailable`: filtro de disponibilidad.
+- `loading`: indicador de carga.
+
+Las vistas se muestran de forma condicional segun el valor de `view`.
+
+## Vistas principales
+
+### Inicio
+
+Componente:
+
+```text
+src/components/HomePage.jsx
 ```
 
-### 3. Instalar las dependencias
+Muestra una introduccion de PawStore y un boton para ir al catalogo.
+
+### Catalogo
+
+Componente:
+
+```text
+src/components/ProductsPage.jsx
+```
+
+Muestra los productos en tarjetas. Permite:
+
+- Buscar productos por nombre.
+- Filtrar productos disponibles.
+- Abrir la vista de detalle de un producto.
+
+El catalogo se renderiza desde el estado `products`, por lo que refleja inmediatamente los cambios realizados desde administracion.
+
+### Detalle de producto
+
+Componente:
+
+```text
+src/components/ProductDetailPage.jsx
+```
+
+Muestra informacion completa del producto seleccionado:
+
+- Imagen.
+- Nombre.
+- Precio.
+- Categoria.
+- Descripcion.
+- Stock disponible.
+
+Tambien incluye un boton para volver al catalogo.
+
+### Administracion
+
+Componente:
+
+```text
+src/components/AdminPage.jsx
+```
+
+Es la zona donde se gestiona el inventario. Incluye:
+
+- Tabla con todos los productos.
+- Boton para editar cada producto.
+- Boton para eliminar cada producto.
+- Formulario para agregar nuevos productos.
+
+### Edicion de producto
+
+Componente:
+
+```text
+src/components/EditProductPage.jsx
+```
+
+Muestra una pantalla separada para editar un producto existente.
+
+El formulario aparece precargado con los datos actuales del producto. Desde esta vista se puede:
+
+- Guardar cambios.
+- Cancelar y volver a administracion sin guardar.
+
+## Formulario reutilizable
+
+El formulario de productos esta centralizado en:
+
+```text
+src/components/ProductForm.jsx
+```
+
+Este componente se usa tanto para:
+
+- Agregar productos.
+- Editar productos.
+
+Recibe por props:
+
+- Datos del formulario.
+- Funcion para manejar cambios.
+- Funcion para enviar el formulario.
+- Texto del boton principal.
+- Mensaje de error.
+- Configuracion opcional para mostrar la categoria como `select`.
+
+Esto evita duplicar el mismo formulario en varias vistas.
+
+## Agregar productos
+
+Desde la vista de administracion se completa el formulario con:
+
+- `nombre`
+- `descripcion`
+- `precio`
+- `categoria`
+- `imagen`
+- `stock`
+
+Todos los campos son obligatorios.
+
+Al enviar el formulario:
+
+1. Se evita la recarga de pagina.
+2. Se valida que no existan campos vacios.
+3. Se calcula un nuevo `id`.
+4. Se crea un nuevo objeto de producto.
+5. Se agrega al estado `products`.
+6. Se limpia el formulario.
+
+El nuevo producto aparece inmediatamente en:
+
+- Listado administrativo.
+- Catalogo publico.
+- Vista de detalle, cuando se selecciona.
+
+## Editar productos
+
+Desde la tabla administrativa, el boton **Editar** abre una vista separada.
+
+Al abrir la edicion:
+
+1. Se guarda el producto actual en `editingProduct`.
+2. Se cargan sus datos en `productForm`.
+3. Se cambia la vista a `edit-product`.
+
+Al guardar:
+
+1. Se valida que no haya campos vacios.
+2. Se crea una version actualizada del producto.
+3. Se reemplaza el producto correspondiente dentro de `products`.
+4. Si ese producto estaba abierto en detalle, tambien se actualiza `selectedProduct`.
+5. Se vuelve a la vista de administracion.
+
+Al cancelar:
+
+- No se guardan cambios.
+- Se vuelve a administracion.
+
+## Eliminar productos
+
+Desde la tabla administrativa, el boton **Eliminar** remueve el producto del estado `products`.
+
+Al eliminar:
+
+1. Se recibe el `id` del producto.
+2. Se filtra el arreglo para excluir ese producto.
+3. Se actualiza el estado.
+4. El producto desaparece del listado administrativo.
+5. El producto desaparece del catalogo.
+6. Si el producto estaba abierto en detalle, se limpia la seleccion y se evita seguir mostrando informacion eliminada.
+
+## Actualizacion inmediata
+
+Todas las vistas leen desde el mismo estado `products`.
+
+Por eso, cuando se ejecuta:
+
+```js
+setProducts(...)
+```
+
+React vuelve a renderizar automaticamente las partes de la interfaz que dependen de ese estado.
+
+No es necesario recargar manualmente la pagina.
+
+## Scripts disponibles
+
+Instalar dependencias:
 
 ```bash
 npm install
 ```
 
-### 4. Iniciar el servidor de desarrollo
+Ejecutar en modo desarrollo:
 
 ```bash
 npm run dev
 ```
 
-Una vez iniciado el servidor, Vite mostrará en la terminal una dirección local similar a:
-
-```text
-http://localhost:5173/
-```
-
-Esta dirección puede abrirse desde cualquier navegador web para visualizar la aplicación.
-
-## Funcionamiento de la aplicación
-
-### Página de inicio
-
-La página principal presenta una introducción a PawStore y proporciona acceso directo al catálogo mediante la opción "Ver productos".
-
-### Catálogo de productos
-
-La vista de catálogo muestra dinámicamente los productos disponibles en el archivo `products.json`.
-
-Cada producto se presenta mediante una tarjeta que contiene:
-
-* Imagen.
-* Nombre.
-* Precio.
-* Categoría.
-* Opción para consultar los detalles.
-
-La vista también proporciona una herramienta de búsqueda por nombre y un filtro para mostrar únicamente productos con existencias disponibles.
-
-### Estado de carga
-
-Al acceder al catálogo se muestra temporalmente un indicador de carga mientras se procesan los productos que serán mostrados en pantalla.
-
-### Productos no encontrados
-
-Cuando ningún producto cumple con los criterios establecidos en la búsqueda o filtros seleccionados, la aplicación muestra un mensaje informativo indicando que no se encontraron resultados.
-
-### Detalle del producto
-
-Al seleccionar la opción "Ver detalles", se presenta una vista con información ampliada del producto seleccionado.
-
-Esta información incluye:
-
-* Nombre del producto.
-* Precio.
-* Categoría.
-* Descripción.
-* Stock disponible.
-* Imagen del producto.
-
-Desde esta sección también es posible regresar al catálogo.
-
-## Scripts disponibles
-
-El proyecto incluye los siguientes comandos:
-
-### Ejecutar el proyecto en modo desarrollo
-
-```bash
-npm run dev
-```
-
-### Generar la versión de producción
+Generar version de produccion:
 
 ```bash
 npm run build
 ```
 
-### Ejecutar el análisis de código con ESLint
+Ejecutar ESLint:
 
 ```bash
 npm run lint
 ```
 
-### Previsualizar la versión de producción
+Previsualizar la version de produccion:
 
 ```bash
 npm run preview
 ```
 
-## Diseño adaptable
+En Windows PowerShell, si `npm run ...` falla por politica de ejecucion de scripts, se puede usar:
 
-La interfaz fue desarrollada utilizando CSS responsive para facilitar su visualización en diferentes resoluciones de pantalla.
+```bash
+npm.cmd run dev
+npm.cmd run build
+npm.cmd run lint
+```
 
-El catálogo modifica la distribución de sus columnas de acuerdo con el espacio disponible, permitiendo una presentación adecuada en equipos de escritorio, tabletas y dispositivos móviles.
+## Verificacion
 
-## Consideraciones técnicas
+El proyecto fue verificado con:
 
-El proyecto utiliza un archivo JSON local como fuente de información, por lo que no requiere una API externa, servidor backend ni conexión a una base de datos.
+```bash
+npm.cmd run lint
+npm.cmd run build
+```
 
-La interfaz se encuentra enfocada actualmente en la consulta y visualización de productos. La arquitectura permite ampliar posteriormente el proyecto con funcionalidades adicionales, como carrito de compras, autenticación de usuarios, gestión de productos o integración con una API.
+Ambos comandos finalizaron correctamente.
+
+## Consideraciones tecnicas
+
+- El proyecto no usa React Router; las vistas se controlan con el estado `view`.
+- El estado principal vive en `App.jsx`.
+- Los componentes de `src/components` se encargan principalmente de renderizar vistas.
+- Las operaciones CRUD se hacen en memoria usando `useState`.
+- El JSON sigue siendo la fuente inicial, pero no se modifica durante la ejecucion.
+- La arquitectura actual permite agregar posteriormente persistencia, backend, autenticacion o carrito de compras.

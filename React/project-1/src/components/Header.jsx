@@ -1,11 +1,9 @@
-function Header({ view, goHome, loadProducts }) {
+function Header({ view, goHome, loadProducts, loadAdmin }) {
+  const isAdminView = view === "admin" || view === "edit-product";
+
   return (
     <header className="header">
-      <button
-        type="button"
-        className="header__logo"
-        onClick={goHome}
-      >
+      <button type="button" className="header__logo" onClick={goHome}>
         <span className="header__logo-icon">🐾</span>
         <span>PawStore</span>
       </button>
@@ -21,17 +19,21 @@ function Header({ view, goHome, loadProducts }) {
 
         <button
           type="button"
-          className={
-            view === "products" || view === "detail"
-              ? "active"
-              : ""
-          }
+          className={view === "products" || view === "detail" ? "active" : ""}
           onClick={loadProducts}
         >
           Productos
         </button>
 
         <a href="">Contacto</a>
+
+        <button
+          type="button"
+          className={`btn-administracion ${isAdminView ? "active" : ""}`}
+          onClick={loadAdmin}
+        >
+          Administración
+        </button>
       </nav>
     </header>
   );
