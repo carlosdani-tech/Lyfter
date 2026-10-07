@@ -1,35 +1,30 @@
+import { formatColones } from "../utils/formatters";
+
 function ProductDetailPage({ selectedProduct, loadProducts }) {
   return (
     <main className="product-detail-page">
       <section className="product-detail">
         <div className="product-detail__image-container">
           <img
-            src={selectedProduct.imagen}
-            alt={selectedProduct.nombre}
+            src={selectedProduct.image_url || "/paw.png"}
+            alt={selectedProduct.name}
             className="product-detail__image"
           />
         </div>
 
         <div className="product-detail__content">
-          <h1>{selectedProduct.nombre}</h1>
-
-          <p className="product-detail__price">₡{selectedProduct.precio}</p>
-
+          <h1>{selectedProduct.name}</h1>
+          <p className="product-detail__price">
+            {formatColones(selectedProduct.price)}
+          </p>
           <p className="product-detail__category">
-            {selectedProduct.categoria}
+            {selectedProduct.category || "Sin categoría"}
           </p>
-
           <p className="product-detail__description">
-            {selectedProduct.descripcion}
+            {selectedProduct.description || "Sin descripción disponible."}
           </p>
-
           <p className="product-detail__stock">
             Stock disponible: {selectedProduct.stock}
-          </p>
-
-          <p className="product-detail__message">
-            Más adelante aquí se podrá agregar este producto al carrito y
-            completar la compra.
           </p>
 
           <button

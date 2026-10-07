@@ -6,6 +6,7 @@ function EditProductPage({
   handleProductFormChange,
   handleSaveProduct,
   loadAdmin,
+  mutationLoading,
 }) {
   return (
     <main className="edit-product-page">
@@ -17,20 +18,26 @@ function EditProductPage({
           formError={formError}
           onChange={handleProductFormChange}
           onSubmit={handleSaveProduct}
-          submitLabel="Guardar cambios"
-          showCategorySelect
+          submitLabel={mutationLoading ? "Guardando..." : "Guardar cambios"}
+          disabled={mutationLoading}
+          disableNativeValidation
         >
           <div className="edit-product-card__actions">
             <button
               type="button"
               className="edit-product-card__cancel"
               onClick={loadAdmin}
+              disabled={mutationLoading}
             >
               Cancelar
             </button>
 
-            <button type="submit" className="edit-product-card__save">
-              Guardar cambios
+            <button
+              type="submit"
+              className="edit-product-card__save"
+              disabled={mutationLoading}
+            >
+              {mutationLoading ? "Guardando..." : "Guardar cambios"}
             </button>
           </div>
         </ProductForm>
