@@ -44,7 +44,7 @@ Registers a new `client` user. Request body:
 ```json
 {
   "email": "client@example.com",
-  "password": "Password123",
+  "password": "<strong-client-password>",
   "first_name": "Client",
   "last_name": "User"
 }
@@ -59,7 +59,7 @@ Returns a JWT access token and safe user data. Request body:
 ```json
 {
   "email": "client@example.com",
-  "password": "Password123"
+  "password": "<configured-user-password>"
 }
 ```
 
@@ -72,10 +72,10 @@ Successful response:
     "token_type": "Bearer",
     "user": {
       "id": 1,
-      "email": "admin@example.com",
-      "first_name": "Admin",
+      "email": "client@example.com",
+      "first_name": "Client",
       "last_name": "User",
-      "role": "admin",
+      "role": "client",
       "is_active": true
     }
   }
@@ -117,16 +117,25 @@ Creates a product. `category` is optional and limited to 100 characters. Request
 }
 ```
 
+For creation, `name`, `price`, and `stock` are required. `description`,
+`category`, and `image_url` are optional. `price` must be greater than or equal
+to zero, and `stock` must be an integer greater than or equal to zero.
+
 Successful responses wrap the serialized product in
 `{"data": {"product": { ... }}}`. Serialized products use `name`,
 `description`, `category`, `price`, `stock`, `image_url`, and `is_active`,
 plus `id`, `created_at`, and `updated_at`.
+
+Creation returns HTTP `201`. Product prices are serialized as decimal strings,
+for example `"7.50"`.
 
 ```text
 GET /products
 ```
 
 Public endpoint. Lists active products without requiring authentication. This response is cached in Redis Cloud with key `pet_ecommerce:products:list`.
+
+Do not send an `Authorization` header for normal public catalog access.
 
 Response shape:
 
@@ -144,6 +153,8 @@ GET /products/<product_id>
 
 Public endpoint. Returns one active product by id without requiring authentication. This response is cached in Redis Cloud with key `pet_ecommerce:products:detail:<product_id>`.
 
+Do not send an `Authorization` header for normal public detail access.
+
 Response shape: `{"data": {"product": { ... }}}`. An inactive or unknown
 product returns `404`.
 
@@ -153,6 +164,9 @@ Authorization: Bearer <admin_token>
 ```
 
 Updates one or more product fields: `name`, `description`, `category`, `price`, `stock`, `image_url`, `is_active`. `category` is optional, accepts `null` or an empty value, and is limited to 100 characters.
+
+The request body must contain at least one supported field. `price` and `stock`
+use the same non-negative validation as product creation.
 
 Successful response shape: `{"data": {"product": { ... }}}`.
 
@@ -165,6 +179,21 @@ Deactivates a product by setting `is_active` to `false`. Product cache is invali
 
 Successful response shape: `{"data": {"product": { ... }}}`, with
 `is_active` set to `false`.
+
+Authentication, authorization, validation, and not-found failures use this
+envelope with the corresponding `4xx` status. Validation responses may also
+include an `error.details` object keyed by field name:
+
+```json
+{
+  "error": {
+    "message": "Invalid request payload.",
+    "details": {
+      "price": "Price must be greater than or equal to 0."
+    }
+  }
+}
+```
 
 ## Cart
 

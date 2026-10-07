@@ -1,5 +1,6 @@
 import Loading from "./Loading";
 import ProductForm from "./ProductForm";
+import { formatColones } from "../utils/formatters";
 
 function AdminPage({
   loading,
@@ -69,7 +70,7 @@ function AdminPage({
                   <tr key={product.id}>
                     <td>{formatAdminId(product.id)}</td>
                     <td>{product.name}</td>
-                    <td>₡{product.price}</td>
+                    <td>{formatColones(product.price)}</td>
                     <td>
                       <span className="admin-table__tag">
                         {product.category || "Sin categoría"}

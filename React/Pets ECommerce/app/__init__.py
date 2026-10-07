@@ -3,11 +3,11 @@ from flask_cors import CORS
 from redis import Redis
 
 import app.extensions as extensions
-from app.config import Config
+from app.config import Config, validate_required_config
 from app.extensions import db, jwt, migrate
 from app.models import load_models
 from app.routes import register_blueprints
-from app.utils.seed import seed_admin_user
+from app.utils.seed import seed_development_users
 
 _REDIS_PLACEHOLDER_HOSTS = {"", "your-redis-cloud-host"}
 
@@ -47,6 +47,7 @@ def _create_redis_client(app: Flask) -> Redis | None:
 def create_app(config_class: type[Config] = Config) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_class)
+    validate_required_config(app.config)
 
     CORS(
         app,
@@ -74,6 +75,6 @@ def create_app(config_class: type[Config] = Config) -> Flask:
 
     if not app.config.get("TESTING"):
         with app.app_context():
-            seed_admin_user()
+            seed_development_users()
 
     return app

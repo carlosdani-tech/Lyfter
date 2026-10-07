@@ -4,6 +4,37 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+REQUIRED_CONFIG = (
+    "SECRET_KEY",
+    "JWT_SECRET_KEY",
+    "ADMIN_SEED_EMAIL",
+    "ADMIN_SEED_PASSWORD",
+    "CLIENT_SEED_EMAIL",
+    "CLIENT_SEED_PASSWORD",
+)
+
+
+class ConfigurationError(RuntimeError):
+    pass
+
+
+def validate_required_config(config: dict) -> None:
+    missing = [
+        name
+        for name in REQUIRED_CONFIG
+        if not isinstance(config.get(name), str) or not config[name].strip()
+    ]
+
+    if missing:
+        raise ConfigurationError(
+            f"Missing required environment variables: {', '.join(missing)}",
+        )
+
+    if config["ADMIN_SEED_PASSWORD"] == config["CLIENT_SEED_PASSWORD"]:
+        raise ConfigurationError(
+            "ADMIN_SEED_PASSWORD and CLIENT_SEED_PASSWORD must be different",
+        )
+
 
 def _get_bool_env(name: str, default: str = "false") -> bool:
     return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
@@ -24,10 +55,14 @@ def _get_float_env(name: str, default: str = "0") -> float:
 
 
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY", "dev_secret_key")
-    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev_jwt_secret_key")
+    SECRET_KEY = os.getenv("SECRET_KEY")
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
     ADMIN_SEED_EMAIL = os.getenv("ADMIN_SEED_EMAIL", "admin@example.com")
-    ADMIN_SEED_PASSWORD = os.getenv("ADMIN_SEED_PASSWORD", "Password123")
+    ADMIN_SEED_PASSWORD = os.getenv("ADMIN_SEED_PASSWORD")
+    CLIENT_SEED_EMAIL = os.getenv("CLIENT_SEED_EMAIL", "client@example.com")
+    CLIENT_SEED_PASSWORD = os.getenv("CLIENT_SEED_PASSWORD")
+    CLIENT_SEED_FIRST_NAME = os.getenv("CLIENT_SEED_FIRST_NAME", "Client")
+    CLIENT_SEED_LAST_NAME = os.getenv("CLIENT_SEED_LAST_NAME", "User")
 
     DATABASE_HOST = os.getenv("DATABASE_HOST", "localhost")
     DATABASE_PORT = os.getenv("DATABASE_PORT", "5432")

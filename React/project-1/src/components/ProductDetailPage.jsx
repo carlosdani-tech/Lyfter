@@ -1,3 +1,5 @@
+import { formatColones } from "../utils/formatters";
+
 function ProductDetailPage({ selectedProduct, loadProducts }) {
   return (
     <main className="product-detail-page">
@@ -12,7 +14,9 @@ function ProductDetailPage({ selectedProduct, loadProducts }) {
 
         <div className="product-detail__content">
           <h1>{selectedProduct.name}</h1>
-          <p className="product-detail__price">₡{selectedProduct.price}</p>
+          <p className="product-detail__price">
+            {formatColones(selectedProduct.price)}
+          </p>
           <p className="product-detail__category">
             {selectedProduct.category || "Sin categoría"}
           </p>

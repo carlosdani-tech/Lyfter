@@ -24,8 +24,9 @@ Products are loaded from the Flask API with `GET /products`. Product creation,
 editing, and deletion call the protected API endpoints rather than changing a
 local-only product list.
 
-`src/data/products.json` is retained only as historical sample data. It is not
-imported or used at runtime.
+The former `src/data/products.json` file is historical sample data and is no
+longer an active runtime source. Catalog and detail content are derived from
+products returned by the backend.
 
 The frontend uses the backend field names:
 
@@ -52,13 +53,26 @@ Override it with the optional Vite environment variable:
 VITE_API_BASE_URL=http://127.0.0.1:5000
 ```
 
+If this variable is omitted, the frontend uses the default URL above. Restart
+the Vite development server after changing a Vite environment variable.
+
 The API layer is centralized under `src/api/`:
 
 - `apiClient.js`: base URL, JSON parsing, errors, and Bearer tokens.
-- `authApi.js`: login and current-user requests.
-- `productsApi.js`: public reads and protected product mutations.
+- `authApi.js`: login requests.
+- `productsApi.js`: public catalog reads and protected product mutations.
 
 The project uses the browser `fetch` API and does not use Axios.
+
+Application state is split into focused hooks under `src/hooks/`:
+
+- `useAuth`: in-memory user, token, login errors, and session invalidation.
+- `useProducts`: backend product collection, selection, loading, and refresh.
+- `useProductForm`: shared create/edit form state and validation.
+- `useProductMutations`: protected create/edit/delete workflows, request locks,
+  and mutation Toast feedback.
+
+`App.jsx` remains the state-based navigation and page-composition coordinator.
 
 ## Authentication and roles
 
@@ -96,6 +110,7 @@ Main views:
 - `HomePage.jsx`
 - `ProductsPage.jsx`
 - `ProductDetailPage.jsx`
+- `ContactPage.jsx`
 - `Login.jsx`
 - `AdminPage.jsx`
 - `EditProductPage.jsx`
@@ -105,8 +120,13 @@ Main views:
 Start the Flask backend first from `../Pets ECommerce`:
 
 ```powershell
+.venv\Scripts\python -m flask --app run.py db upgrade
 .venv\Scripts\python -m flask --app run.py run --debug
 ```
+
+The backend requires PostgreSQL migrations to be applied and the security and
+seed password variables described in its README to be configured before it can
+start.
 
 Then start the frontend from `project-1`:
 

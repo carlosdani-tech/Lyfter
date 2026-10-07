@@ -7,10 +7,13 @@ Use this file as the operational workflow for Codex CLI and VS Code development.
 1. Create the virtual environment.
 2. Install dependencies from `requirements.txt`.
 3. Copy `.env.example` to `.env`.
-4. Configure PostgreSQL and Redis locally.
-5. Run migrations after models exist.
-6. Run the app.
-7. Validate with lint and tests.
+4. Generate separate `SECRET_KEY` and `JWT_SECRET_KEY` values. Configure strong,
+   different `ADMIN_SEED_PASSWORD` and `CLIENT_SEED_PASSWORD` values. Never
+   commit `.env` or reuse secrets between environments.
+5. Configure PostgreSQL and Redis locally.
+6. Run migrations after models exist.
+7. Run the app.
+8. Validate with lint and tests.
 
 ## VS Code tasks
 
@@ -91,6 +94,7 @@ Run the backend:
 
 ```powershell
 cd "Pets ECommerce"
+.venv\Scripts\python -m flask --app run.py db upgrade
 .venv\Scripts\python -m flask --app run.py run --debug
 ```
 

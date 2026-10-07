@@ -1,10 +1,7 @@
-from app import create_app
 from app.extensions import db
 
 
-def test_database_models_are_registered():
-    create_app()
-
+def test_database_models_are_registered(app):
     expected_tables = {
         "roles",
         "users",

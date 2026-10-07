@@ -5,11 +5,6 @@ export async function getProducts() {
   return data.products;
 }
 
-export async function getProduct(productId) {
-  const data = await request(`/products/${encodeURIComponent(productId)}`);
-  return data.product;
-}
-
 export async function createProduct(product, token) {
   const data = await request("/products", {
     method: "POST",

@@ -5,7 +5,6 @@ function ProductForm({
   onSubmit,
   submitLabel,
   children,
-  showCategorySelect = false,
   disabled = false,
   disableNativeValidation = false,
 }) {
@@ -59,34 +58,15 @@ function ProductForm({
 
         <label>
           Categoría
-          {showCategorySelect ? (
-            <select
-              name="category"
-              value={productForm.category}
-              onChange={onChange}
-              required
-              disabled={disabled}
-            >
-              <option value="" disabled>
-                Selecciona una categoria
-              </option>
-              <option value="Perros">Perros</option>
-              <option value="Gatos">Gatos</option>
-              <option value="Accesorios">Accesorios</option>
-              <option value="Alimento">Alimento</option>
-              <option value="Juguetes">Juguetes</option>
-            </select>
-          ) : (
-            <input
-              type="text"
-              name="category"
-              placeholder="Categoría del producto (ej. Alimento, Juguetes)"
-              value={productForm.category}
-              onChange={onChange}
-              required
-              disabled={disabled}
-            />
-          )}
+          <input
+            type="text"
+            name="category"
+            placeholder="Categoría del producto (ej. Alimento, Juguetes)"
+            value={productForm.category}
+            onChange={onChange}
+            required
+            disabled={disabled}
+          />
         </label>
       </div>
 

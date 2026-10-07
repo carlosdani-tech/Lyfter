@@ -6,7 +6,3 @@ export function login({ email, password }) {
     body: { email, password },
   });
 }
-
-export function getCurrentUser(token) {
-  return request("/auth/me", { token });
-}

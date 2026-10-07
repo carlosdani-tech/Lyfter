@@ -4,12 +4,14 @@ function Header({
   loadProducts,
   loadAdmin,
   openLogin,
+  openContact,
   currentUser,
+  isAdmin,
   handleLogout,
 }) {
   const isAdminView =
-    currentUser?.role === "admin" &&
-    (view === "admin" || view === "edit-product");
+    isAdmin && (view === "admin" || view === "edit-product");
+  const showAdminAction = !currentUser || isAdmin;
   const sessionName = currentUser
     ? [currentUser.first_name, currentUser.last_name].filter(Boolean).join(" ") ||
       currentUser.email
@@ -39,15 +41,23 @@ function Header({
           Productos
         </button>
 
-        <a href="">Contacto</a>
-
         <button
           type="button"
-          className={`btn-administracion ${isAdminView ? "active" : ""}`}
-          onClick={loadAdmin}
+          className={view === "contact" ? "active" : ""}
+          onClick={openContact}
         >
-          Administración
+          Contacto
         </button>
+
+        {showAdminAction && (
+          <button
+            type="button"
+            className={`btn-administracion ${isAdminView ? "active" : ""}`}
+            onClick={loadAdmin}
+          >
+            Administración
+          </button>
+        )}
 
         {currentUser ? (
           <div className="header__session">

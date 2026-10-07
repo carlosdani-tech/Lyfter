@@ -1,4 +1,5 @@
 import Loading from "./Loading";
+import { formatColones } from "../utils/formatters";
 
 function ProductsPage({
   loading,
@@ -86,7 +87,9 @@ function ProductsPage({
 
                 <div className="product-card__content">
                   <h2>{product.name}</h2>
-                  <p className="product-card__price">₡{product.price}</p>
+                  <p className="product-card__price">
+                    {formatColones(product.price)}
+                  </p>
                   <p className="product-card__category">
                     {product.category || "Sin categoría"}
                   </p>

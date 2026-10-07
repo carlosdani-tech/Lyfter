@@ -9,8 +9,12 @@ from app.models import Role, User
 
 class TestConfig(Config):
     TESTING = True
-    SECRET_KEY = "test_secret_key"
-    JWT_SECRET_KEY = "test_jwt_secret_key_with_at_least_32_chars"
+    SECRET_KEY = "test-only-flask-signing-key"
+    JWT_SECRET_KEY = "test-only-jwt-signing-key-with-at-least-32-chars"
+    ADMIN_SEED_PASSWORD = "test-only-admin-password-123"
+    CLIENT_SEED_PASSWORD = "test-only-client-password-456"
+    CLIENT_SEED_FIRST_NAME = "Test Client"
+    CLIENT_SEED_LAST_NAME = "User"
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
 
 

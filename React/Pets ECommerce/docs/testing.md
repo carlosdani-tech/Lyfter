@@ -62,3 +62,12 @@ Manual commands:
 - Cover success and failure cases.
 - Add regression tests for bugs.
 - Do not test implementation details when API behavior is enough.
+
+## Security configuration
+
+The pytest configuration supplies isolated, deterministic test-only values for
+`SECRET_KEY`, `JWT_SECRET_KEY`, `ADMIN_SEED_PASSWORD`, and
+`CLIENT_SEED_PASSWORD`. Tests do not depend on the developer's `.env` or
+production credentials. Runtime startup rejects missing, empty, and
+whitespace-only values for any of these variables. Seed tests verify both roles,
+password hashing, login, authorization, idempotency, and role-conflict handling.

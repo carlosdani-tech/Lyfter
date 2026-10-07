@@ -48,6 +48,24 @@ Install dependencies:
 
 Copy `.env.example` to `.env` and adjust local values. Do not commit real secrets or machine-specific passwords.
 
+`SECRET_KEY`, `JWT_SECRET_KEY`, `ADMIN_SEED_PASSWORD`, and
+`CLIENT_SEED_PASSWORD` are required. Startup fails before extensions or seed
+operations are initialized if any required value is missing, empty, or
+whitespace-only. The admin and client seed passwords must also be different.
+Generate separate signing keys for each environment and never reuse the Flask
+session key as the JWT key:
+
+```powershell
+python -c "import secrets; print(secrets.token_urlsafe(64))"
+```
+
+Run the command separately for `SECRET_KEY` and `JWT_SECRET_KEY`. Configure
+`ADMIN_SEED_PASSWORD` and `CLIENT_SEED_PASSWORD` with different strong passwords
+that satisfy the existing password requirements. `.env.example` contains
+variable names and instructions only; keep the real `.env` uncommitted.
+Rotating `SECRET_KEY` invalidates signed Flask session data, while rotating
+`JWT_SECRET_KEY` invalidates existing JWTs.
+
 ## PostgreSQL
 
 Expected environment variables:
@@ -105,6 +123,7 @@ Terminal > Run Task > run
 Manual command:
 
 ```powershell
+.venv\Scripts\python -m flask --app run.py db upgrade
 .venv\Scripts\python -m flask --app run.py run --debug
 ```
 
@@ -121,27 +140,72 @@ integration phase:
 
 - `POST /auth/login`
 - `GET /products` (public)
-- `GET /products/<product_id>` (public)
 - `POST /products` (admin Bearer token required)
 - `PUT /products/<product_id>` (admin Bearer token required)
 - `DELETE /products/<product_id>` (admin Bearer token required; soft delete)
 
-The product read endpoints return only active products. Deletion sets
-`is_active` to `false`; it does not physically remove the row.
+The backend also exposes public `GET /products/<product_id>`. The current React
+detail view uses the product selected from the backend-loaded catalog, so it
+does not make a separate detail request. Both read endpoints return only active
+products. Deletion sets `is_active` to `false`; it does not physically remove
+the row.
 
 The Flask CORS configuration permits the standard Vite development origins:
 
 - `http://localhost:5173`
 - `http://127.0.0.1:5173`
 
-The application seeds an admin user when one does not exist. Unless overridden
-by `ADMIN_SEED_EMAIL` and `ADMIN_SEED_PASSWORD`, the development credentials
-are:
+`http://127.0.0.1:8080` is also allowed for the project's alternate local
+frontend workflow. CORS does not replace JWT and role checks on mutations.
 
-```text
-Email: admin@example.com
-Password: Password123
+With the backend running, start the integrated React frontend in a second
+terminal:
+
+```powershell
+cd ..\project-1
+npm.cmd run dev
 ```
+
+## Development seed users
+
+On non-testing startup, the application ensures that one administrator and one
+client exist. These users are intended for local development and testing.
+
+Administrator:
+
+- Email: `ADMIN_SEED_EMAIL` (defaults to `admin@example.com`).
+- Password: the value configured through `ADMIN_SEED_PASSWORD`.
+- Role: `admin`.
+
+Client:
+
+- Email: `CLIENT_SEED_EMAIL` (defaults to `client@example.com`).
+- Password: the value configured through `CLIENT_SEED_PASSWORD`.
+- First and last name: `CLIENT_SEED_FIRST_NAME` and `CLIENT_SEED_LAST_NAME`.
+- Role: `client`.
+
+Example local configuration:
+
+```dotenv
+ADMIN_SEED_EMAIL=admin@example.com
+ADMIN_SEED_PASSWORD=<choose-a-strong-local-password>
+
+CLIENT_SEED_EMAIL=client@example.com
+CLIENT_SEED_PASSWORD=<choose-a-different-strong-local-password>
+CLIENT_SEED_FIRST_NAME=Client
+CLIENT_SEED_LAST_NAME=User
+```
+
+Replace every password placeholder, use different passwords for the two users,
+and never commit `.env`. Repeated startup does not duplicate users or roles and
+does not reset or overwrite an existing user's password, profile, active state,
+or role. Startup raises a seed conflict if a configured email already belongs
+to a user with a different role.
+
+If a seed password changes after its user already exists, the database still
+contains the previous password hash. Update that development user's password
+deliberately or recreate the local seed data; restarting alone does not rotate
+existing passwords.
 
 Frontend registration, cart, checkout, sales, invoices, and user-management UI
 are outside the current React integration phase. The corresponding advanced

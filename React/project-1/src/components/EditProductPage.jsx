@@ -19,7 +19,6 @@ function EditProductPage({
           onChange={handleProductFormChange}
           onSubmit={handleSaveProduct}
           submitLabel={mutationLoading ? "Guardando..." : "Guardar cambios"}
-          showCategorySelect
           disabled={mutationLoading}
           disableNativeValidation
         >

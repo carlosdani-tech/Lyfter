@@ -42,10 +42,14 @@ function Login({ onSubmit, loading, error }) {
             />
           </label>
 
-          {error && <p className="login-form__error">{error}</p>}
+          {error && (
+            <p className="login-form__error" role="alert">
+              {error}
+            </p>
+          )}
 
           <button type="submit" disabled={loading}>
-            {loading ? "Iniciando sesión..." : "Iniciar sesión"}
+            {loading ? "Iniciando sesión..." : "Ingresar"}
           </button>
         </form>
       </section>
