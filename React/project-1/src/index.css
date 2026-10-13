@@ -240,6 +240,63 @@ button {
 }
 
 
+/* CONTACT */
+
+.contact-page {
+  flex: 1;
+  width: 100%;
+
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+
+  padding: 80px 20px 100px;
+
+  background-color: #ffffff;
+}
+
+.contact-card {
+  width: 100%;
+  max-width: 680px;
+
+  padding: 40px;
+
+  text-align: center;
+}
+
+.contact-card h1 {
+  margin-bottom: 20px;
+
+  color: #1f1f1f;
+  font-size: 38px;
+}
+
+.contact-card p {
+  margin-bottom: 14px;
+
+  color: #596174;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.contact-card button {
+  margin-top: 18px;
+  padding: 12px 18px;
+
+  border: none;
+  border-radius: 5px;
+
+  background-color: #6366f1;
+  color: #ffffff;
+
+  font-size: 15px;
+}
+
+.contact-card button:hover {
+  opacity: 0.85;
+}
+
+
 /*PRODUCTS PAGE*/
 
 .products-page {
@@ -645,6 +702,17 @@ button {
 
 /*ADMIN*/
 
+.access-message {
+  width: 100%;
+  padding: 14px 20px;
+
+  background-color: #fff7ed;
+  color: #9a3412;
+
+  font-size: 15px;
+  text-align: center;
+}
+
 .admin-page {
   flex: 1;
   width: 100%;
@@ -745,8 +813,59 @@ button {
   gap: 16px;
 }
 
-.admin-table__edit,
-.admin-table__delete,
+
+/* Botón Editar */
+
+.admin-table__edit {
+  padding: 10px 16px;
+
+  border: 1px solid #dfe3e8;
+  border-radius: 5px;
+
+  background-color: transparent;
+  color: #1f1f1f;
+
+  font-size: 15px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.admin-table__edit:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+
+/* Botón Eliminar */
+
+.admin-table__delete {
+  padding: 10px 16px;
+
+  border: none;
+  border-radius: 5px;
+
+  background-color: #dc3545;
+  color: #ffffff;
+
+  font-size: 15px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: background-color 0.2s ease;
+}
+
+.admin-table__delete:hover {
+  background-color: #bb2d3b;
+  color: #ffffff;
+}
+
+
 .edit-product-card__cancel {
   border: none;
   background-color: transparent;
@@ -757,7 +876,6 @@ button {
   font-weight: 600;
 }
 
-.admin-table__edit,
 .edit-product-card__cancel {
   padding: 10px 16px;
 
@@ -765,14 +883,9 @@ button {
   border-radius: 5px;
 }
 
-.admin-table__edit:hover,
 .edit-product-card__cancel:hover {
   border-color: #6366f1;
   color: #6366f1;
-}
-
-.admin-table__delete:hover {
-  color: #dc2626;
 }
 
 .admin-form-card {
@@ -969,6 +1082,14 @@ button {
     padding: 120px 20px 80px;
   }
 
+  .contact-page {
+    padding: 60px 20px 80px;
+  }
+
+  .contact-card {
+    padding: 20px 0;
+  }
+
   .home__content h1 {
     font-size: 36px;
   }
@@ -991,4 +1112,170 @@ button {
   .edit-product-card__actions {
     flex-direction: column-reverse;
   }
+}
+
+
+/* SESSION */
+
+.header__session {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  color: #596174;
+  font-size: 14px;
+}
+
+.header__nav .header__logout {
+  padding: 8px 12px;
+
+  border: 1px solid #dfe3e8;
+  border-radius: 5px;
+}
+
+.header__nav .header__logout:hover {
+  border-color: #6366f1;
+}
+
+
+/* LOGIN */
+
+.login-page {
+  flex: 1;
+  width: 100%;
+
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+
+  padding: 80px 20px 100px;
+  background-color: #ffffff;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 480px;
+
+  padding: 32px;
+
+  border: 1px solid #dfe3e8;
+  border-radius: 7px;
+
+  background-color: #ffffff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+}
+
+.login-card h1 {
+  margin-bottom: 12px;
+
+  color: #1f1f1f;
+  font-size: 32px;
+}
+
+.login-card > p {
+  margin-bottom: 28px;
+
+  color: #596174;
+  line-height: 1.5;
+}
+
+.login-form {
+  display: grid;
+  gap: 20px;
+}
+
+.login-form label {
+  display: grid;
+  gap: 9px;
+
+  color: #1f1f1f;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.login-form input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+
+  outline: none;
+}
+
+.login-form input:focus {
+  border-color: #6366f1;
+}
+
+.login-form button {
+  padding: 12px 18px;
+
+  border: none;
+  border-radius: 5px;
+
+  background-color: #6366f1;
+  color: #ffffff;
+
+  font-size: 15px;
+}
+
+.login-form button:disabled,
+.login-form input:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.login-form__error {
+  color: #dc2626;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+
+/* TOAST CONFIRMATION */
+
+.toast-confirmation p {
+  margin: 0;
+  color: #1f1f1f;
+  line-height: 1.45;
+}
+
+.toast-confirmation__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.toast-confirmation__actions button {
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.toast-confirmation__confirm {
+  border: none;
+  background-color: #6366f1;
+  color: #ffffff;
+}
+
+.toast-confirmation__confirm--danger {
+  background-color: #dc3545;
+}
+
+.toast-confirmation__cancel {
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  color: #1f1f1f;
+}
+
+.toast-confirmation__actions button:hover {
+  opacity: 0.85;
+}
+
+.toast-confirmation__actions button:focus-visible {
+  outline: 3px solid rgba(99, 102, 241, 0.35);
+  outline-offset: 2px;
 }

@@ -1,0 +1,12 @@
+Flask
+Flask-CORS
+Flask-SQLAlchemy
+Flask-Migrate
+psycopg[binary]
+python-dotenv
+redis
+Flask-JWT-Extended
+Werkzeug
+pytest
+pytest-flask
+ruff

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { toast } from "react-toastify";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import HomePage from "./components/HomePage";
@@ -6,40 +7,72 @@ import ProductsPage from "./components/ProductsPage";
 import ProductDetailPage from "./components/ProductDetailPage";
 import AdminPage from "./components/AdminPage";
 import EditProductPage from "./components/EditProductPage";
-import productsData from "./data/products.json";
+import Login from "./components/Login";
+import ContactPage from "./components/ContactPage";
+import useAuth from "./hooks/useAuth";
+import useProducts from "./hooks/useProducts";
+import useProductForm from "./hooks/useProductForm";
+import useProductMutations from "./hooks/useProductMutations";
 
-const emptyProductForm = {
-  nombre: "",
-  descripcion: "",
-  precio: "",
-  categoria: "",
-  imagen: "",
-  stock: "",
-};
+const LOGOUT_CONFIRMATION_TOAST_ID = "logout-confirmation";
+const ADMIN_ACCESS_DENIED_MESSAGE =
+  "No tienes permiso para acceder a esta sección.";
 
 function App() {
   const [view, setView] = useState("home");
-  const [products, setProducts] = useState(productsData);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [productForm, setProductForm] = useState(emptyProductForm);
-  const [formError, setFormError] = useState("");
-
   const [search, setSearch] = useState("");
   const [onlyAvailable, setOnlyAvailable] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [accessMessage, setAccessMessage] = useState("");
+  const logoutInProgressRef = useRef(false);
 
-  const loadProducts = () => {
+  const {
+    currentUser,
+    accessToken,
+    isAdmin,
+    authError,
+    authLoading,
+    login,
+    logout,
+    invalidateSession,
+    showAuthError,
+    clearAuthError,
+  } = useAuth();
+  const {
+    products,
+    selectedProduct,
+    loading,
+    productError,
+    fetchProducts,
+    createProduct,
+    updateProduct,
+    deleteProduct: deactivateProduct,
+    selectProduct,
+    clearSelectedProduct,
+    replaceSelectedProduct,
+    clearSelectedProductById,
+    clearProductError,
+  } = useProducts();
+  const {
+    editingProduct,
+    productForm,
+    formError,
+    startEditing,
+    handleFormChange,
+    validateForm,
+    createPayload,
+    resetForm,
+    clearEditingState,
+    setFormError,
+  } = useProductForm();
+
+  const loadProducts = async () => {
+    setAccessMessage("");
     setView("products");
-    setLoading(true);
-
-    setTimeout(() => {
-      setLoading(false);
-    }, 700);
+    await fetchProducts();
   };
 
   const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.nombre
+    const matchesSearch = product.name
       .toLowerCase()
       .includes(search.toLowerCase());
 
@@ -49,178 +82,287 @@ function App() {
   });
 
   const showProductDetail = (product) => {
-    setSelectedProduct(product);
+    selectProduct(product);
     setView("detail");
   };
 
   const goHome = () => {
     setView("home");
-    setSelectedProduct(null);
-    setEditingProduct(null);
-    setFormError("");
+    clearSelectedProduct();
+    clearEditingState();
+    clearProductError();
+    setAccessMessage("");
   };
 
-  const loadAdmin = () => {
+  const openAdminView = async () => {
+    setAccessMessage("");
+    resetForm();
+    await fetchProducts();
     setView("admin");
-    setLoading(true);
-    setEditingProduct(null);
-    setFormError("");
-    setProductForm(emptyProductForm);
+  };
 
-    setTimeout(() => {
-      setLoading(false);
-    }, 700);
+  const loadAdmin = async () => {
+    if (!currentUser) {
+      showAuthError(ADMIN_ACCESS_DENIED_MESSAGE);
+      setAccessMessage("");
+      setView("login");
+      return;
+    }
+
+    if (!isAdmin) {
+      clearAuthError();
+      setAccessMessage(ADMIN_ACCESS_DENIED_MESSAGE);
+      setView("products");
+      await fetchProducts();
+      return;
+    }
+
+    clearAuthError();
+    await openAdminView();
+  };
+
+  const openLogin = () => {
+    clearAuthError();
+    setAccessMessage("");
+    setView("login");
+  };
+
+  const openContact = () => {
+    clearAuthError();
+    setAccessMessage("");
+    setFormError("");
+    clearProductError();
+    setView("contact");
+  };
+
+  const handleLogin = async (credentials) => {
+    const session = await login(credentials);
+
+    if (!session) {
+      return;
+    }
+
+    if (session.user.role === "admin") {
+      setAccessMessage("");
+      resetForm();
+      await fetchProducts();
+      setView("admin");
+    } else {
+      await loadProducts();
+    }
+  };
+
+  const clearSession = () => {
+    logout();
+    clearEditingState();
+    setAccessMessage("");
+  };
+
+  const handleProtectedSessionExpired = (message) => {
+    invalidateSession(message);
+    clearEditingState();
+    setAccessMessage("");
+    setView("login");
+  };
+
+  const {
+    mutationLoading,
+    deactivatingProductId,
+    handleAddProduct,
+    handleSaveProduct,
+    deleteProduct,
+  } = useProductMutations({
+    isAdmin,
+    accessToken,
+    editingProduct,
+    validateForm,
+    createPayload,
+    resetForm,
+    setFormError,
+    createProduct,
+    updateProduct,
+    deactivateProduct,
+    replaceSelectedProduct,
+    clearSelectedProductById,
+    onSessionExpired: handleProtectedSessionExpired,
+    onEditSuccess: () => setView("admin"),
+  });
+
+  const performLogout = async () => {
+    if (logoutInProgressRef.current) {
+      return;
+    }
+
+    logoutInProgressRef.current = true;
+    clearSession();
+    clearAuthError();
+
+    try {
+      if (view === "admin" || view === "edit-product") {
+        setView("products");
+        await fetchProducts();
+      }
+    } finally {
+      logoutInProgressRef.current = false;
+    }
+  };
+
+  const handleLogout = () => {
+    if (
+      logoutInProgressRef.current ||
+      toast.isActive(LOGOUT_CONFIRMATION_TOAST_ID)
+    ) {
+      return;
+    }
+
+    toast.warning(
+      <div className="toast-confirmation">
+        <p>¿Deseas cerrar la sesión?</p>
+        <div className="toast-confirmation__actions">
+          <button
+            type="button"
+            className="toast-confirmation__confirm"
+            onClick={() => {
+              toast.dismiss(LOGOUT_CONFIRMATION_TOAST_ID);
+              void performLogout();
+            }}
+          >
+            Cerrar sesión
+          </button>
+          <button
+            type="button"
+            className="toast-confirmation__cancel"
+            onClick={() => toast.dismiss(LOGOUT_CONFIRMATION_TOAST_ID)}
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>,
+      {
+        toastId: LOGOUT_CONFIRMATION_TOAST_ID,
+        autoClose: false,
+        closeOnClick: false,
+        draggable: false,
+      },
+    );
   };
 
   const formatAdminId = (id) => `PAW${String(id).padStart(3, "0")}`;
 
   const openEditProduct = (product) => {
-    setEditingProduct(product);
-    setProductForm({
-      nombre: product.nombre,
-      descripcion: product.descripcion,
-      precio: String(product.precio),
-      categoria: product.categoria,
-      imagen: product.imagen,
-      stock: String(product.stock),
-    });
-    setFormError("");
+    if (!isAdmin) {
+      void loadAdmin();
+      return;
+    }
+
+    if (!product || product.id == null) {
+      return;
+    }
+
+    startEditing(product);
     setView("edit-product");
   };
 
-  const handleProductFormChange = (event) => {
-    const { name, value } = event.target;
-
-    setProductForm((currentForm) => ({
-      ...currentForm,
-      [name]: value,
-    }));
-  };
-
-  const hasEmptyProductField = () =>
-    Object.values(productForm).some((value) => String(value).trim() === "");
-
-  const createProductFromForm = (id) => ({
-    id,
-    nombre: productForm.nombre,
-    descripcion: productForm.descripcion,
-    precio: Number(productForm.precio),
-    categoria: productForm.categoria,
-    imagen: productForm.imagen,
-    stock: Number(productForm.stock),
-  });
-
-  const handleAddProduct = (event) => {
-    event.preventDefault();
-
-    if (hasEmptyProductField()) {
-      setFormError("Por favor completa todos los campos antes de agregar el producto.");
-      return;
-    }
-
-    const nextId =
-      products.length === 0
-        ? 1
-        : Math.max(...products.map((product) => product.id)) + 1;
-
-    setProducts((currentProducts) => [
-      ...currentProducts,
-      createProductFromForm(nextId),
-    ]);
-    setProductForm(emptyProductForm);
-    setFormError("");
-  };
-
-  const handleSaveProduct = (event) => {
-    event.preventDefault();
-
-    if (hasEmptyProductField()) {
-      setFormError("Por favor completa todos los campos antes de guardar los cambios.");
-      return;
-    }
-
-    const updatedProduct = createProductFromForm(editingProduct.id);
-
-    setProducts((currentProducts) =>
-      currentProducts.map((product) =>
-        product.id === editingProduct.id ? updatedProduct : product,
-      ),
-    );
-
-    setSelectedProduct((currentProduct) =>
-      currentProduct?.id === editingProduct.id ? updatedProduct : currentProduct,
-    );
-    setEditingProduct(null);
-    setFormError("");
-    setView("admin");
-  };
-
-  const deleteProduct = (productId) => {
-    setProducts((currentProducts) =>
-      currentProducts.filter((product) => product.id !== productId),
-    );
-
-    if (selectedProduct?.id === productId) {
-      setSelectedProduct(null);
-
-      if (view === "detail") {
-        setView("products");
-      }
-    }
-  };
+  const isUnauthorizedProtectedView =
+    (view === "admin" || view === "edit-product") && !isAdmin;
+  const renderedView = isUnauthorizedProtectedView
+    ? currentUser
+      ? "products"
+      : "login"
+    : view;
+  const renderedAccessMessage = isUnauthorizedProtectedView
+    ? currentUser
+      ? ADMIN_ACCESS_DENIED_MESSAGE
+      : ""
+    : accessMessage;
+  const renderedAuthError =
+    isUnauthorizedProtectedView && !currentUser
+      ? ADMIN_ACCESS_DENIED_MESSAGE
+      : authError;
 
   return (
     <>
       <Header
-        view={view}
+        view={renderedView}
         goHome={goHome}
         loadProducts={loadProducts}
         loadAdmin={loadAdmin}
+        openLogin={openLogin}
+        openContact={openContact}
+        currentUser={currentUser}
+        isAdmin={isAdmin}
+        handleLogout={handleLogout}
       />
 
-      {view === "home" && <HomePage loadProducts={loadProducts} />}
+      {renderedView === "home" && <HomePage loadProducts={loadProducts} />}
 
-      {view === "products" && (
-        <ProductsPage
-          loading={loading}
-          products={products}
-          filteredProducts={filteredProducts}
-          search={search}
-          onlyAvailable={onlyAvailable}
-          setSearch={setSearch}
-          setOnlyAvailable={setOnlyAvailable}
-          showProductDetail={showProductDetail}
+      {renderedView === "login" && (
+        <Login
+          onSubmit={handleLogin}
+          loading={authLoading}
+          error={renderedAuthError}
         />
       )}
 
-      {view === "detail" && selectedProduct && (
+      {renderedView === "contact" && (
+        <ContactPage loadProducts={loadProducts} />
+      )}
+
+      {renderedView === "products" && (
+        <>
+          {renderedAccessMessage && (
+            <p className="access-message" role="alert">
+              {renderedAccessMessage}
+            </p>
+          )}
+          <ProductsPage
+            loading={loading}
+            productError={productError}
+            products={products}
+            filteredProducts={filteredProducts}
+            search={search}
+            onlyAvailable={onlyAvailable}
+            setSearch={setSearch}
+            setOnlyAvailable={setOnlyAvailable}
+            showProductDetail={showProductDetail}
+            retryLoadProducts={loadProducts}
+          />
+        </>
+      )}
+
+      {renderedView === "detail" && selectedProduct && (
         <ProductDetailPage
           selectedProduct={selectedProduct}
           loadProducts={loadProducts}
         />
       )}
 
-      {view === "admin" && (
+      {renderedView === "admin" && isAdmin && (
         <AdminPage
           loading={loading}
+          productError={productError}
           products={products}
           productForm={productForm}
           formError={formError}
           formatAdminId={formatAdminId}
           openEditProduct={openEditProduct}
           deleteProduct={deleteProduct}
-          handleProductFormChange={handleProductFormChange}
+          handleProductFormChange={handleFormChange}
           handleAddProduct={handleAddProduct}
+          retryLoadProducts={loadAdmin}
+          mutationLoading={mutationLoading}
+          deactivatingProductId={deactivatingProductId}
         />
       )}
 
-      {view === "edit-product" && editingProduct && (
+      {renderedView === "edit-product" && isAdmin && editingProduct && (
         <EditProductPage
           productForm={productForm}
           formError={formError}
-          handleProductFormChange={handleProductFormChange}
+          handleProductFormChange={handleFormChange}
           handleSaveProduct={handleSaveProduct}
           loadAdmin={loadAdmin}
+          mutationLoading={mutationLoading}
         />
       )}
 
