@@ -3,6 +3,7 @@
 from app.extensions import db
 from app.repositories.cart_repository import CartRepository
 from app.repositories.product_repository import ProductRepository
+from app.repositories.user_repository import UserRepository
 
 
 class CartError(Exception):
@@ -49,12 +50,14 @@ def serialize_cart(cart) -> dict:
 class CartService:
     @staticmethod
     def get_active_cart(user_id: int) -> dict:
+        UserRepository.lock_by_id(user_id)
         cart = CartRepository.get_or_create_active(user_id)
         db.session.commit()
         return {"cart": serialize_cart(cart)}
 
     @staticmethod
     def add_product(user_id: int, payload: dict) -> dict:
+        UserRepository.lock_by_id(user_id)
         product = ProductRepository.get_by_id(payload["product_id"])
         if not product or not product.is_active:
             raise CartError("Product not found.", 404)
@@ -77,6 +80,7 @@ class CartService:
 
     @staticmethod
     def update_item(user_id: int, item_id: int, payload: dict) -> dict:
+        UserRepository.lock_by_id(user_id)
         item = CartRepository.get_item_by_id(item_id)
         if not item:
             raise CartError("Cart item not found.", 404)
@@ -100,6 +104,7 @@ class CartService:
 
     @staticmethod
     def remove_item(user_id: int, item_id: int) -> dict:
+        UserRepository.lock_by_id(user_id)
         item = CartRepository.get_item_by_id(item_id)
         if not item:
             raise CartError("Cart item not found.", 404)

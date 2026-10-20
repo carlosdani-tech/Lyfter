@@ -1,4 +1,6 @@
-function ContactPage({ loadProducts }) {
+import { Link } from "react-router-dom";
+
+function ContactPage() {
   return (
     <main className="contact-page">
       <section className="contact-card">
@@ -8,9 +10,9 @@ function ContactPage({ loadProducts }) {
           habilitarla próximamente.
         </p>
         <p>Puedes continuar navegando por nuestros productos mientras tanto.</p>
-        <button type="button" onClick={loadProducts}>
+        <Link className="contact-card__link" to="/productos">
           Ver productos
-        </button>
+        </Link>
       </section>
     </main>
   );

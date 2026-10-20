@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { formatProductValidationError } from "../utils/apiValidation";
+import useAuthContext from "./useAuthContext";
 
 const DEACTIVATION_CONFIRMATION_TOAST_ID = "product-deactivation-confirmation";
 const DEACTIVATION_SUCCESS_TOAST_ID = "product-deactivation-success";
@@ -22,8 +23,6 @@ const showValidationToast = (toastId, message) => {
 };
 
 function useProductMutations({
-  isAdmin,
-  accessToken,
   editingProduct,
   validateForm,
   createPayload,
@@ -32,11 +31,9 @@ function useProductMutations({
   createProduct,
   updateProduct,
   deactivateProduct,
-  replaceSelectedProduct,
-  clearSelectedProductById,
-  onSessionExpired,
   onEditSuccess,
 }) {
+  const { isAdmin, runProtectedRequest, isCurrentSession } = useAuthContext();
   const [mutationLoading, setMutationLoading] = useState(false);
   const [deactivatingProductId, setDeactivatingProductId] = useState(null);
   const creationInProgressRef = useRef(false);
@@ -47,13 +44,6 @@ function useProductMutations({
     const validationMessage = formatProductValidationError(error);
     if (validationMessage) {
       setError(validationMessage);
-      return;
-    }
-
-    if (error.status === 401) {
-      const message = "Tu sesión expiró. Inicia sesión nuevamente.";
-      onSessionExpired(message);
-      setError(message);
       return;
     }
 
@@ -86,7 +76,7 @@ function useProductMutations({
       return;
     }
 
-    if (!isAdmin || !accessToken) {
+    if (!isAdmin) {
       const message =
         "Debes iniciar sesión como administrador para agregar productos.";
       setFormError("");
@@ -108,7 +98,8 @@ function useProductMutations({
     toast.loading("Agregando producto...", { toastId: CREATION_TOAST_ID });
 
     try {
-      await createProduct(createPayload(), accessToken);
+      await runProtectedRequest((token) => createProduct(createPayload(), token));
+      if (!isCurrentSession()) return;
       resetForm();
       toast.update(CREATION_TOAST_ID, {
         render: "Producto agregado correctamente.",
@@ -118,6 +109,7 @@ function useProductMutations({
         closeButton: true,
       });
     } catch (error) {
+      if (!isCurrentSession() || error.name === "SessionChangedError" || error.status === 401) return;
       handleMutationError(error, "agregar", (message) => {
         setFormError(message);
         toast.update(CREATION_TOAST_ID, {
@@ -141,7 +133,7 @@ function useProductMutations({
       return;
     }
 
-    if (!isAdmin || !accessToken || !editingProduct) {
+    if (!isAdmin || !editingProduct) {
       const message =
         "Debes iniciar sesión como administrador para actualizar productos.";
       setFormError("");
@@ -163,12 +155,12 @@ function useProductMutations({
     toast.loading("Guardando cambios...", { toastId: EDIT_TOAST_ID });
 
     try {
-      const updatedProduct = await updateProduct(
+      await runProtectedRequest((token) => updateProduct(
         editingProduct.id,
         createPayload(),
-        accessToken,
-      );
-      replaceSelectedProduct(updatedProduct);
+        token,
+      ));
+      if (!isCurrentSession()) return;
       resetForm();
       onEditSuccess();
       toast.update(EDIT_TOAST_ID, {
@@ -179,6 +171,7 @@ function useProductMutations({
         closeButton: true,
       });
     } catch (error) {
+      if (!isCurrentSession() || error.name === "SessionChangedError" || error.status === 401) return;
       handleMutationError(error, "actualizar", (message) => {
         setFormError(message);
         toast.update(EDIT_TOAST_ID, {
@@ -204,8 +197,8 @@ function useProductMutations({
     setDeactivatingProductId(product.id);
 
     try {
-      await deactivateProduct(product.id, accessToken);
-      clearSelectedProductById(product.id);
+      await runProtectedRequest((token) => deactivateProduct(product.id, token));
+      if (!isCurrentSession()) return;
 
       if (editingProduct?.id === product.id) {
         resetForm();
@@ -215,6 +208,7 @@ function useProductMutations({
         toastId: DEACTIVATION_SUCCESS_TOAST_ID,
       });
     } catch (error) {
+      if (!isCurrentSession() || error.name === "SessionChangedError" || error.status === 401) return;
       handleMutationError(error, "eliminar", (message) => {
         toast.error(message, { toastId: DEACTIVATION_ERROR_TOAST_ID });
       });
@@ -225,7 +219,7 @@ function useProductMutations({
   };
 
   const deleteProduct = (product) => {
-    if (!isAdmin || !accessToken) {
+    if (!isAdmin) {
       setFormError(
         "Debes iniciar sesión como administrador para modificar productos.",
       );

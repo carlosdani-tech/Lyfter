@@ -9,6 +9,11 @@ class SaleItem(TimestampMixin, db.Model):
         db.CheckConstraint("quantity > 0", name="ck_sale_items_quantity_positive"),
         db.CheckConstraint("unit_price >= 0", name="ck_sale_items_unit_price_non_negative"),
         db.CheckConstraint("line_total >= 0", name="ck_sale_items_line_total_non_negative"),
+        db.CheckConstraint(
+            "product_name IS NULL OR (length(trim(product_name)) > 0 "
+            "AND line_total = round(unit_price * quantity, 2))",
+            name="ck_sale_items_snapshot",
+        ),
         db.UniqueConstraint("sale_id", "product_id", name="uq_sale_items_sale_product"),
         db.Index("ix_sale_items_product_id", "product_id"),
     )
@@ -21,6 +26,7 @@ class SaleItem(TimestampMixin, db.Model):
         nullable=False,
     )
     quantity = db.Column(db.Integer, nullable=False)
+    product_name = db.Column(db.String(150), nullable=True)
     unit_price = db.Column(db.Numeric(10, 2), nullable=False)
     line_total = db.Column(db.Numeric(10, 2), nullable=False)
 

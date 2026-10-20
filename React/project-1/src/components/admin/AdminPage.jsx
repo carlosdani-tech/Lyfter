@@ -1,6 +1,7 @@
-import Loading from "./Loading";
+import Loading from "../routing/Loading";
 import ProductForm from "./ProductForm";
-import { formatColones } from "../utils/formatters";
+import { formatColones } from "../../utils/formatters";
+import { Link } from "react-router-dom";
 
 function AdminPage({
   loading,
@@ -9,7 +10,6 @@ function AdminPage({
   productForm,
   formError,
   formatAdminId,
-  openEditProduct,
   deleteProduct,
   handleProductFormChange,
   handleAddProduct,
@@ -20,7 +20,7 @@ function AdminPage({
   if (loading) {
     return (
       <main className="admin-page">
-        <Loading message="Cargando panel de administración..." />
+        <Loading message="Cargando el panel de administración..." />
       </main>
     );
   }
@@ -37,7 +37,7 @@ function AdminPage({
           <section className="empty-products">
             <div className="empty-products__icon">:(</div>
             <h2>No se pudieron cargar los productos</h2>
-            <p>{productError}</p>
+            <p role="alert">{productError}</p>
             <button
               type="button"
               className="product-card__button"
@@ -79,14 +79,8 @@ function AdminPage({
                     <td>{product.stock}</td>
                     <td>
                       <div className="admin-table__actions">
-                        <button
-                          type="button"
-                          className="admin-table__edit"
-                          onClick={() => openEditProduct(product)}
-                          disabled={mutationLoading}
-                        >
-                          Editar
-                        </button>
+                        {mutationLoading ? <button type="button" className="admin-table__edit" disabled>Editar</button> :
+                          <Link className="admin-table__edit" to={`/admin/editar/${product.id}`}>Editar</Link>}
                         <button
                           type="button"
                           className="admin-table__delete"

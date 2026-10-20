@@ -9,6 +9,7 @@ from app.models import Role, User
 
 class TestConfig(Config):
     TESTING = True
+    EMAIL_ENABLED = False
     SECRET_KEY = "test-only-flask-signing-key"
     JWT_SECRET_KEY = "test-only-jwt-signing-key-with-at-least-32-chars"
     ADMIN_SEED_PASSWORD = "test-only-admin-password-123"
@@ -16,6 +17,16 @@ class TestConfig(Config):
     CLIENT_SEED_FIRST_NAME = "Test Client"
     CLIENT_SEED_LAST_NAME = "User"
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+
+
+@pytest.fixture(autouse=True)
+def block_email_network(monkeypatch):
+    def blocked(*args, **kwargs):
+        raise AssertionError("External SMTP/network calls are forbidden in tests.")
+
+    monkeypatch.setattr("smtplib.SMTP", blocked)
+    monkeypatch.setattr("smtplib.SMTP_SSL", blocked)
+    monkeypatch.setattr("socket.create_connection", blocked)
 
 
 @pytest.fixture()

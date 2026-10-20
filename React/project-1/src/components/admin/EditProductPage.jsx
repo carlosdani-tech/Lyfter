@@ -1,11 +1,11 @@
 import ProductForm from "./ProductForm";
+import { Link } from "react-router-dom";
 
 function EditProductPage({
   productForm,
   formError,
   handleProductFormChange,
   handleSaveProduct,
-  loadAdmin,
   mutationLoading,
 }) {
   return (
@@ -23,14 +23,8 @@ function EditProductPage({
           disableNativeValidation
         >
           <div className="edit-product-card__actions">
-            <button
-              type="button"
-              className="edit-product-card__cancel"
-              onClick={loadAdmin}
-              disabled={mutationLoading}
-            >
-              Cancelar
-            </button>
+            {mutationLoading ? <button type="button" className="edit-product-card__cancel" disabled>Cancelar</button> :
+              <Link className="edit-product-card__cancel" to="/admin">Cancelar</Link>}
 
             <button
               type="submit"

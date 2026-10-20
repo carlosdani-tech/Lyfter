@@ -1,4 +1,6 @@
-function HomePage({ loadProducts }) {
+import { Link } from "react-router-dom";
+
+function HomePage() {
   return (
     <main className="home">
       <section className="home__content">
@@ -14,9 +16,9 @@ function HomePage({ loadProducts }) {
           accesorios y más.
         </p>
 
-        <button className="home__link" type="button" onClick={loadProducts}>
+        <Link className="home__link" to="/productos">
           Ver productos
-        </button>
+        </Link>
 
         <p className="home__description">
           Esta es la página principal de la aplicación. Más adelante aquí

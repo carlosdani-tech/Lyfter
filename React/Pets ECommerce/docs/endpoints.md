@@ -1,5 +1,13 @@
 # Endpoints
 
+This is the implemented HTTP inventory, not a record of live endpoint tests.
+Application success bodies use `data`; handled validation/business failures
+use `error.message` and optional `error.details`. Health endpoints below are
+plain objects. Flask-JWT-Extended retains its native authentication error
+body (including `msg`); malformed tokens commonly return 422, expired/missing
+tokens 401. Unmatched routes and unexpected failures are not all converted
+by a global JSON handler. Do not promise a uniform envelope for those cases.
+
 ## Current endpoints
 
 Application health:
@@ -133,7 +141,9 @@ for example `"7.50"`.
 GET /products
 ```
 
-Public endpoint. Lists active products without requiring authentication. This response is cached in Redis Cloud with key `pet_ecommerce:products:list`.
+Public endpoint. Lists active products without requiring authentication. When
+optional Redis is enabled and available, the data uses
+`<REDIS_KEY_PREFIX>:products:list`; otherwise reads use PostgreSQL.
 
 Do not send an `Authorization` header for normal public catalog access.
 
@@ -151,7 +161,8 @@ Response shape:
 GET /products/<product_id>
 ```
 
-Public endpoint. Returns one active product by id without requiring authentication. This response is cached in Redis Cloud with key `pet_ecommerce:products:detail:<product_id>`.
+Public endpoint. Returns one active product by ID without authentication. The
+optional cache key is `<REDIS_KEY_PREFIX>:products:detail:<product_id>`.
 
 Do not send an `Authorization` header for normal public detail access.
 
@@ -238,7 +249,18 @@ Authorization: Bearer <client_token>
 
 Removes an item from the authenticated user's active cart.
 
-Cart operations validate available product stock but do not change stock. Stock changes only after sale or payment confirmation.
+Cart operations check stock but do not reserve or change it. Checkout reduces
+stock; cancellation/return restores it. There is no payment-confirmation flow.
+GET creates/reuses an active cart; add returns 201, other cart operations 200.
+Each returns the full `{data:{cart:...}}`, never only an item or 204.
+Cart fields: `id`, `user_id`, `status`, `items`, `subtotal`, `total`,
+`created_at`, `updated_at`. Item fields: `id`, `product_id`, `name`,
+`unit_price`, `quantity`, `line_total`. Money is decimal text calculated from
+current database prices. Inactive products are omitted from this serializer
+without removing their stored items; checkout still validates those rows.
+The current cart schema coerces numeric inputs with `int()` and ignores extra
+keys; do not describe it as the stricter checkout allowlist. The frontend
+rejects fractional, boolean, unsafe, and noncanonical IDs/quantities locally.
 
 ## Sales
 
@@ -248,6 +270,13 @@ Authorization: Bearer <client_token>
 ```
 
 Creates a sale from the authenticated client's active cart. The operation validates cart items and stock, creates sale items and invoice, reduces product stock, and marks the cart as `checked_out` in one transaction.
+
+Phase 4 requires buyer/shipping JSON and `Idempotency-Key`. See
+[checkout contract](checkout.md) for the exact request/response, limits, replay
+rules and status codes. Both a new purchase and matching replay return `201`.
+Unsupported fields return `400`; key reuse with changed buyer details returns `409`.
+`GET /sales/<sale_id>/confirmation` returns the same envelope with `200`, only
+for the owning client (`404` for another owner, `403` for an admin).
 
 ```text
 POST /sales/<sale_id>/cancel
@@ -262,6 +291,25 @@ Authorization: Bearer <client_or_admin_token>
 ```
 
 Returns a completed sale. Clients can return only their own sales; admin can return any sale. Product stock is restored and the invoice status becomes `refunded`.
+
+Confirmation delivery is attempted only after checkout commits. Serialized
+sales now include `email_status` (`pending`, `sent`, `failed`). Checkout replays
+never send email. `POST /sales/<sale_id>/email/retry` is owner/client-only and
+returns `200` with the confirmation envelope; cooldown, attempt limits, and
+ambiguous-delivery safeguards may skip sending. See [email](email.md) for
+configuration, permissions, retry semantics, and production limits.
+
+```text
+GET /sales/<sale_id>/confirmation
+POST /sales/<sale_id>/email/retry
+Authorization: Bearer <owning_client_token>
+```
+
+Both are client-owner only; admins get 403, missing/other-owner purchases 404.
+Confirmation GET performs no checkout, stock mutation, or email send. Retry
+uses the persisted sale/key, ignores purchase/recipient overrides, and can
+return 200 without sending because of status/cooldown/cap/fencing. There is
+no frontend email-retry control, sale-list endpoint, or purchase lookup by key.
 
 ## Invoices
 

@@ -7,11 +7,13 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "test": "node --test tests/auth/auth.test.mjs tests/routing/routing.test.mjs tests/routing/navigation.test.mjs tests/api/commerce-api.test.mjs tests/cart/cart.test.mjs tests/cart/cart-ui.test.mjs tests/checkout/checkout.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-router-dom": "7.18.4",
     "react-toastify": "^11.1.0"
   },
   "devDependencies": {

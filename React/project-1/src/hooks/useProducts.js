@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   createProduct as createProductRequest,
   deleteProduct as deleteProductRequest,
@@ -8,11 +8,10 @@ import {
 
 function useProducts() {
   const [products, setProducts] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [productError, setProductError] = useState("");
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     setProductError("");
 
@@ -22,12 +21,12 @@ function useProducts() {
     } catch {
       setProducts([]);
       setProductError(
-        "No se pudieron cargar los productos. Verifica que el servidor este disponible.",
+        "No se pudieron cargar los productos. Verifica que el servidor esté disponible.",
       );
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const createProduct = async (product, token) => {
     const createdProduct = await createProductRequest(product, token);
@@ -51,40 +50,14 @@ function useProducts() {
     return deletedProduct;
   };
 
-  const selectProduct = (product) => {
-    setSelectedProduct(product);
-  };
-
-  const clearSelectedProduct = () => {
-    setSelectedProduct(null);
-  };
-
-  const replaceSelectedProduct = (product) => {
-    setSelectedProduct((currentProduct) =>
-      currentProduct?.id === product.id ? product : currentProduct,
-    );
-  };
-
-  const clearSelectedProductById = (productId) => {
-    setSelectedProduct((currentProduct) =>
-      currentProduct?.id === productId ? null : currentProduct,
-    );
-  };
-
   return {
     products,
-    selectedProduct,
     loading,
     productError,
     fetchProducts,
     createProduct,
     updateProduct,
     deleteProduct,
-    selectProduct,
-    clearSelectedProduct,
-    replaceSelectedProduct,
-    clearSelectedProductById,
-    clearProductError: () => setProductError(""),
   };
 }
 

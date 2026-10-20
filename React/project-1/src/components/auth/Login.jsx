@@ -1,19 +1,37 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import useAuthContext from "../../hooks/useAuthContext";
+import { safeDestination } from "../../utils/routing";
 
-function Login({ onSubmit, loading, error }) {
+function Login() {
+  const { login, authLoading: loading, authError: error } = useAuthContext();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    await onSubmit({ email, password });
+    const session = await login({ email, password });
+    if (!mountedRef.current || !session?.isCurrent()) return;
+    setPassword("");
+    const destination = safeDestination(location.state?.from);
+    navigate(destination || (session.user.role === "admin" ? "/admin" : "/productos"), { replace: true });
   };
 
   return (
     <main className="login-page">
       <section className="login-card">
         <h1>Iniciar sesión</h1>
-        <p>Ingresa tu correo y contraseña para continuar.</p>
+        <p>Ingresa tu correo electrónico y tu contraseña para continuar.</p>
+        {location.state?.cartReason === "login-required" && (
+          <p className="access-message" role="status">Inicia sesión como cliente para agregar productos al carrito.</p>
+        )}
 
         <form className="login-form" onSubmit={handleSubmit}>
           <label>

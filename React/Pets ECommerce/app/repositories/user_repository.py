@@ -6,6 +6,13 @@ from app.models import User
 
 class UserRepository:
     @staticmethod
+    def lock_by_id(user_id: int) -> User | None:
+        return (
+            db.session.query(User).filter(User.id == user_id)
+            .populate_existing().with_for_update().one_or_none()
+        )
+
+    @staticmethod
     def get_by_id(user_id: int) -> User | None:
         return db.session.get(User, user_id)
 

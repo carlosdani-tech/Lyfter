@@ -61,7 +61,7 @@ function ProductForm({
           <input
             type="text"
             name="category"
-            placeholder="Categoría del producto (ej. Alimento, Juguetes)"
+            placeholder="Categoría del producto (p. ej., alimento o juguetes)"
             value={productForm.category}
             onChange={onChange}
             required

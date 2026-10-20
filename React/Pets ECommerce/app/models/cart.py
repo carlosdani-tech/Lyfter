@@ -13,6 +13,11 @@ class Cart(TimestampMixin, db.Model):
         db.Index("ix_carts_user_id", "user_id"),
         db.Index("ix_carts_status", "status"),
         db.Index("ix_carts_user_status", "user_id", "status"),
+        db.Index(
+            "uq_carts_active_user", "user_id", unique=True,
+            postgresql_where=db.text("status = 'active'"),
+            sqlite_where=db.text("status = 'active'"),
+        ),
     )
 
     id = db.Column(db.Integer, primary_key=True)

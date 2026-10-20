@@ -1,6 +1,8 @@
-import { formatColones } from "../utils/formatters";
+import { formatColones } from "../../utils/formatters";
+import AddToCartButton from "./AddToCartButton";
+import { Link } from "react-router-dom";
 
-function ProductDetailPage({ selectedProduct, loadProducts }) {
+function ProductDetailPage({ selectedProduct }) {
   return (
     <main className="product-detail-page">
       <section className="product-detail">
@@ -26,14 +28,14 @@ function ProductDetailPage({ selectedProduct, loadProducts }) {
           <p className="product-detail__stock">
             Stock disponible: {selectedProduct.stock}
           </p>
+          <AddToCartButton product={selectedProduct} detail />
 
-          <button
-            type="button"
+          <Link
+            to="/productos"
             className="product-detail__button"
-            onClick={loadProducts}
           >
             Volver al catálogo
-          </button>
+          </Link>
         </div>
       </section>
     </main>

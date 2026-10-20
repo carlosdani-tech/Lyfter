@@ -1,5 +1,7 @@
-import Loading from "./Loading";
-import { formatColones } from "../utils/formatters";
+import Loading from "../routing/Loading";
+import { formatColones } from "../../utils/formatters";
+import AddToCartButton from "./AddToCartButton";
+import { Link } from "react-router-dom";
 
 function ProductsPage({
   loading,
@@ -10,7 +12,6 @@ function ProductsPage({
   onlyAvailable,
   setSearch,
   setOnlyAvailable,
-  showProductDetail,
   retryLoadProducts,
 }) {
   if (loading) {
@@ -27,7 +28,7 @@ function ProductsPage({
         <section className="empty-products">
           <div className="empty-products__icon">:(</div>
           <h2>No se pudieron cargar los productos</h2>
-          <p>{productError}</p>
+          <p role="alert">{productError}</p>
           <button
             type="button"
             className="product-card__button"
@@ -94,13 +95,13 @@ function ProductsPage({
                     {product.category || "Sin categoría"}
                   </p>
 
-                  <button
-                    type="button"
+                  <Link
+                    to={`/productos/${product.id}`}
                     className="product-card__button"
-                    onClick={() => showProductDetail(product)}
                   >
                     Ver detalles
-                  </button>
+                  </Link>
+                  <AddToCartButton product={product} />
                 </div>
               </article>
             ))}

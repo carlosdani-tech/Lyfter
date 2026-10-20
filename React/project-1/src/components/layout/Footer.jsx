@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 function Footer() {
 
   return (
@@ -7,8 +9,8 @@ function Footer() {
       </p>
 
       <nav className="footer__links">
-        <a href="#facebook">Facebook</a>
-        <a href="#instagram">Instagram</a>
+        <Link to="#facebook">Facebook</Link>
+        <Link to="#instagram">Instagram</Link>
       </nav>
     </footer>
   );
