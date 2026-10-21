@@ -61,6 +61,11 @@ order is BrowserRouter, AuthProvider, CartProvider, CheckoutProvider, then App.
 Router owns URLs; contexts own session, authoritative cart snapshots/queue,
 and local purchase attempt state respectively. HTTP code stays in `src/api/`.
 The frontend never chooses a role or an authoritative purchase amount.
+Checkout does send `items` and `total_amount` comparison snapshots and a text
+address. The backend requires them, checks them against the locked cart/current
+prices, and persists its own calculation. This differs from the buyer-only,
+structured-address requirement in repository instructions; see the
+[implementation guide](../../docs/codex-implementation-guide.md#executed-validation-versus-deployment-readiness).
 
 Backend blueprints are registered by `app/routes/__init__.py`. JWT/role checks
 and service ownership rules remain authoritative. Checkout revalidates the

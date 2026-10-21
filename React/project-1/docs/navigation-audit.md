@@ -38,8 +38,7 @@ contract, and performs no migration, environment edit, deletion, or commit.
   inspection is bounded. No response message, exception, token or buyer data
   is inserted into error UI.
 
-`PurchasePlaceholder.jsx` remains on disk under the no-deletion constraint but
-is not imported by the route tree. No obsolete navigation callbacks remain in
+Checkout and confirmation use their dedicated route components. No obsolete navigation callbacks remain in
 the runtime source. The cart's similarly named product availability helper was
 renamed to distinguish its business read from former navigation callbacks.
 

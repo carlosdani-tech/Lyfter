@@ -251,12 +251,17 @@ behavior, backup requirements, and deliberately blocked Phase 4 downgrades.
 
 See `docs/endpoints.md` for request and response details.
 
-Phase 4 checkout now requires validated buyer/shipping JSON and an
+Phase 4 checkout now requires buyer JSON with a text `shipping_address`, product ID/quantity
+`items`, a canonical two-decimal `total_amount` snapshot, and an
 `Idempotency-Key` header. It persists purchase snapshots, locks stock rows,
 and supports owner-only `GET /sales/<sale_id>/confirmation`. See
 [the checkout contract](docs/checkout.md) for exact examples, status codes,
 transaction semantics, and validation limits. Confirmation email is opt-in; see
 [SMTP configuration and delivery semantics](docs/email.md).
+This implemented contract differs from the repository's structured-address,
+buyer-only requirement. The items/total fields are comparison snapshots;
+database prices remain authoritative. No API change was made to resolve this
+mismatch in this documentation task.
 The checkout and email migrations are present through `c91f6d2a804e`.
 No migration was applied or live database revision inspected in this update;
 do not infer runtime schema readiness from source files or SQLite tests.

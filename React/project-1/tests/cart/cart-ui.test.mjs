@@ -3,8 +3,9 @@ import { after, test } from "node:test";
 import { readFile } from "node:fs/promises";
 import React from "react";
 import { renderToString } from "react-dom/server";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { createServer } from "vite";
+import { mountProvider } from "../helpers/providerHarness.mjs";
 import { toast } from "react-toastify";
 
 const server = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: "custom" });
@@ -43,9 +44,10 @@ function fixture(patch = {}) {
   };
   return { ...context, canCheckout: canCheckoutCart(context) };
 }
-function render(context, element = React.createElement(CartPage), location = "/carrito") {
+function render(context, element = React.createElement(CartPage), location = "/carrito",
+  auth = { isAuthenticated: true, isClient: true, authLoading: false, currentUser: { first_name: "Ana" } }) {
   return renderToString(React.createElement(MemoryRouter, { initialEntries: [location] },
-    React.createElement(AuthContext.Provider, { value: { isClient: true, currentUser: { first_name: "Ana" } } },
+    React.createElement(AuthContext.Provider, { value: auth },
       React.createElement(CartContext.Provider, { value: context }, element)))).replace(/<!--[\s\S]*?-->/g, "");
 }
 
@@ -232,6 +234,7 @@ test("detail add retains exact text with a Spanish explanation when stock is zer
 test("header reuses quantity sum and NavLink active state on the cart route", () => {
   const html = render(fixture(), React.createElement(Header));
   assert.match(html, /aria-current="page" class="active" href="\/carrito"/);
+  assert.match(html, /aria-label="Carrito, 3 productos en el carrito"/);
   assert.match(html, /Carrito \(3\)/);
   assert.match(html, /Cerrar sesión/);
 });
@@ -354,10 +357,10 @@ test("admin add goes through provider denial without a cart request or success T
   }
   const auth = { isAuthenticated: true, isClient: false, currentUser: { id: 1, role: "admin" },
     isCurrentSession: () => true, runProtectedRequest: async () => { throw new Error("Unexpected protected request"); } };
-  renderToString(React.createElement(MemoryRouter, { initialEntries: ["/productos"] },
+  const host = mountProvider(() => React.createElement(MemoryRouter, { initialEntries: ["/productos"] },
     React.createElement(AuthContext.Provider, { value: auth },
       React.createElement(CartProvider, null, React.createElement(Probe)))));
-  await click();
+  await host.run(click);
   const snapshot = context.getCartSnapshot();
   assert.deepEqual(snapshot.accessFeedback, {
     message: "Los administradores no pueden utilizar el carrito.", locationKey: "default",
@@ -365,6 +368,71 @@ test("admin add goes through provider denial without a cart request or success T
   assert.equal(snapshot.error, "");
   assert.equal(request.mock.callCount(), 0);
   assert.equal(success.mock.callCount(), 0);
-  context.clearTransientFeedback(snapshot.accessFeedback);
+  host.start(() => context.clearTransientFeedback(snapshot.accessFeedback));
   assert.equal(context.getCartSnapshot().accessFeedback, null);
+  host.unmount();
+});
+
+test("guest header shows zero without fetching or exposing a previous client's cart", (t) => {
+  const request = t.mock.method(globalThis, "fetch", async () => { throw new Error("Unexpected cart request"); });
+  for (const authLoading of [false, true]) {
+    const html = render(fixture({ itemCount: 9, loading: true }), React.createElement(Header), "/productos",
+      { isAuthenticated: false, isClient: false, isAdmin: false, currentUser: null, authLoading });
+    const link = html.match(/<a[^>]*href="\/carrito"[^>]*>[\s\S]*?<\/a>/)?.[0];
+    assert.ok(link);
+    assert.match(link, /aria-label="Carrito, 0 productos en el carrito"/);
+    assert.match(link, /Carrito \(0\)/);
+    assert.match(link, /aria-busy="false"/);
+    assert.doesNotMatch(link, /9|<button|<input|tabindex="-1"/);
+  }
+  assert.equal(request.mock.callCount(), 0);
+});
+
+test("cart link announces quantity once with correct singular and plural and remains a keyboard link", () => {
+  for (const itemCount of [0, 1, 2, 5]) {
+    const html = render(fixture({ itemCount }), React.createElement(Header));
+    const link = html.match(/<a[^>]*href="\/carrito"[^>]*>[\s\S]*?<\/a>/)?.[0];
+    assert.ok(link);
+    assert.ok(link.includes(`aria-label="Carrito, ${itemCount} ${itemCount === 1 ? "producto" : "productos"} en el carrito"`));
+    assert.ok(link.includes(`>Carrito (${itemCount})</a>`));
+    assert.doesNotMatch(link, /<button|<input|tabindex="-1"/);
+    assert.equal((link.match(/aria-label=/g) || []).length, 1);
+  }
+});
+
+test("pending client authentication shows neutral zero and a known admin never sees the cart", () => {
+  const cart = fixture({ itemCount: 9, loading: true });
+  const pendingClient = render(cart, React.createElement(Header), "/",
+    { isAuthenticated: true, isClient: true, isAdmin: false, authLoading: true });
+  assert.match(pendingClient, /aria-label="Carrito, 0 productos en el carrito"/);
+  assert.doesNotMatch(pendingClient, /\(9\)/);
+  for (const authLoading of [false, true]) {
+    const admin = render(cart, React.createElement(Header), "/admin",
+      { isAuthenticated: true, isClient: false, isAdmin: true, authLoading });
+    assert.doesNotMatch(admin, /href="\/carrito"|productos en el carrito|producto en el carrito/);
+  }
+});
+
+test("guest add does not create a cart, call a protected API, or show a success Toast", async (t) => {
+  const request = t.mock.method(globalThis, "fetch", async () => { throw new Error("Unexpected protected request"); });
+  const success = t.mock.method(toast, "success", () => {});
+  let click, cart, location;
+  function Probe() {
+    cart = useCartContext();
+    location = useLocation();
+    const button = AddToCartButton({ product: { id: 4, name: "Alimento", stock: 10, is_active: true } });
+    click = button.props.children[0].props.onClick;
+    return button;
+  }
+  const host = mountProvider(() => React.createElement(MemoryRouter, { initialEntries: ["/productos/4"] },
+    React.createElement(AuthContext.Provider, { value: { isAuthenticated: false, isClient: false, currentUser: null } },
+      React.createElement(CartProvider, null, React.createElement(Probe)))));
+  await host.run(click);
+  assert.equal(location.pathname, "/login");
+  assert.deepEqual(location.state, { from: "/productos/4", cartReason: "login-required" });
+  assert.equal(request.mock.callCount(), 0);
+  assert.equal(success.mock.callCount(), 0);
+  assert.equal(cart.getCartSnapshot().cart, null);
+  assert.equal(cart.getCartSnapshot().itemCount, 0);
+  host.unmount();
 });

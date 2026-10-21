@@ -1,6 +1,6 @@
 # Global cart state
 
-`CartProvider` owns the sole cart store. Provider order in `main.jsx` is
+`CartProvider` owns the sole cart reducer state. Provider order in `main.jsx` is
 `BrowserRouter` → `AuthProvider` → `CartProvider` → `CheckoutProvider` → `App`. Cart depends on auth
 and API modules; auth never imports cart. Components use the guarded
 `useCartContext` hook, which throws outside its provider. There is no anonymous
@@ -24,7 +24,7 @@ cart, browser-storage persistence, duplicate page cart, or optimistic stock.
 | `notice` | Spanish cart-update/removed-item announcement |
 | `canCheckout` | Loaded, nonempty, non-stale, idle cart with verified active products and sufficient known stock |
 | `checkoutLocked` / `beginCheckout()` | Fence reads/writes during submission; release without changing confirmed cart data |
-| `getCartSnapshot()` | Stable store read used by CheckoutProvider |
+| `getCartSnapshot()` | Stable committed-state read used by CheckoutProvider |
 | `refreshCart()` | Deduplicated, queued server read |
 | `addItem(productId, quantity = 1)` | Add quantity through Flask; matching adjacent pending adds share one request |
 | `incrementItem(itemId)` | Add one to the most recently confirmed quantity at execution time |
@@ -40,8 +40,8 @@ items and quantity assignments already equal to the confirmed value are
 no-ops. IDs/quantities use the API boundary's positive-integer validation.
 
 Backend totals remain authoritative. The provider never derives a total by
-multiplying browser prices. Cart/item copies are frozen without mutating API
-response objects. Only item quantities are summed for the header badge.
+multiplying browser prices. Cart/item responses are copied once without mutating API
+response objects. Reducer state uses ordinary immutable replacements, not runtime freezing. Only item quantities are summed for the header badge.
 Exact display formatting uses `BigInt` for the integer part of a decimal
 string and preserves its two fractional digits.
 
@@ -65,23 +65,28 @@ its reset callback, so logout, invalidation, and starting another login clear
 cart data synchronously. Cleanup failures cannot prevent auth invalidation.
 The subscription is removed on cart-provider cleanup.
 
-The cart store is memoized by client role, backend user ID, and auth's stable
-session-bound request/eligibility functions. A new session gets a new empty
-snapshot during render, before any effects or requests. Public pages remain
-mounted, preserving catalog filters. Changing auth errors or navigation does
-not recreate the cart store. An initial-load microtask is canceled during
-StrictMode's simulated cleanup, avoiding duplicate initial GETs.
+`CartProvider` uses `useReducer`; `cartSession.js` contains only pure normalization,
+reducer and selector helpers. It has no factory, mutable domain store, subscriptions,
+or snapshot publication. Counts, items, totals, loading and pending IDs are derived
+from the server cart and pending-job descriptors. A guarded session-key transition
+resets only provider state before rendering a new owner, retaining child local UI
+such as catalog filters. An initial-load microtask is canceled during StrictMode's
+simulated cleanup, avoiding duplicate initial GETs.
 
-Every task carries a store revision and the auth session version. Queue
-execution and response acceptance both verify them. Cart reads and writes use
-`runProtectedRequest`, retaining current-session JWT invalidation and ignoring
-old-session errors. `401`/JWT `422` cannot invalidate a newer login. A response
-whose `user_id` differs from the current backend session is never accepted.
-Data is not shared between client scopes or shown while another user loads.
+Every queued request has an identity and AbortController. Auth's session-bound
+`runProtectedRequest`/`isCurrentSession` remain authoritative for expiry and old
+handlers. Invalidation/unmount aborts transports and removes their identities;
+a transport ignoring abort still cannot update state or return another owner's
+cart. Old saved refresh/reset/read actions cannot read or clear a newer session.
+No token is copied into provider state. There is no refresh-token flow.
 
-Requests already submitted are ignored after invalidation, rather than
-transport-aborted; frontend cleanup cannot undo a backend mutation that has
-already committed. No stale response can repopulate the retired store.
+Three refs have narrow purposes: the latest committed context view for the stable
+checkout reader; the last normalized server cart for queued relative mutations
+before React commits; and imperative queue/request/lock handles. They do not
+publish UI state. The reducer is the rendering source of truth. A session change
+invalidates old work and starts a new queue. A same-session clear preserves the
+transport tail so an already submitted write cannot overlap a new operation.
+Cancellation cannot undo a purchase or mutation already committed by Flask.
 
 ## Queue and reconciliation
 
@@ -100,10 +105,10 @@ unless global cart state is stale.
 
 After a mutation fails, a read happens inside the same queued task, before
 later mutations. A committed-but-lost add is therefore discovered without
-adding twice. If that read fails, previously queued writes are fenced off,
+adding twice. If that read fails, previously queued request identities are discarded,
 the known cart is retained and visibly marked stale, and a successful read
 must precede any later write. Explicit clear keeps the existing transport
-tail so new requests do not overlap an old in-flight write in the same store.
+tail so new requests do not overlap an old in-flight write in the same session.
 
 ## UI integration
 
@@ -114,8 +119,16 @@ it does not render arbitrary state text or automatically replay an add after
 login. Clients load their real cart after login and can retry the add.
 
 Admins get a clear Spanish denial through global `CartFeedback`, without any
-cart API call. Header shows the quantity badge and `/carrito` link only for
-clients. Stock-zero/inactive products cannot be added through the button;
+cart API call. The shared Header exposes `/carrito` on every application route
+for guests and clients, including login and 404 pages. Guests always see `0`;
+clients see `itemCount`, the sum of authoritative quantities. Admins see neither
+the link nor the indicator. Pending authentication uses a neutral zero and a
+known admin remains hidden. Logout/expiry clears protected cart state immediately;
+the guest link remains with zero, without a protected API request or guest cart.
+The link's accessible name announces the count once with singular/plural Spanish.
+Guest cart navigation uses the existing auth guard and safe `/carrito` return
+path through login; `/carrito` and `/checkout` remain client-only.
+Stock-zero/inactive products cannot be added through the button;
 Flask still checks current stock/roles/ownership on every write. Global Spanish
 feedback offers refresh when cart state could not be verified.
 
@@ -134,15 +147,19 @@ npm.cmd run build
 npm.cmd test
 ```
 
-Cart tests use real session/store logic with controlled API responses. They
+Cart tests mount the actual React provider with controlled API responses. They
 cover quantities, duplicate suppression, distinct-item serialization,
-decrement/removal, immutable snapshots, exact decimal display, stock conflict,
+decrement/removal, response-copy isolation, exact decimal display, stock conflict,
 committed-but-lost writes, failed recovery, logout/user switch/expiry, owner
 mismatch, and preservation after checkout failure. Server-rendered checks
 cover provider contract, guarded hook, login explanation, and admin header.
 
-Browser event navigation, effect timing, and real Flask/PostgreSQL transport
-were not executed by these tests. Live multi-tab/device updates require a
+A dependency-free provider-only host exercises real React batching, effects,
+StrictMode, navigation callbacks, session transitions and unmount cleanup. It
+does not render application DOM or substitute for browser layout/accessibility
+checks. Real Flask/PostgreSQL transport is not exercised by these frontend tests. Live multi-tab/device updates require a
 refresh; there is no cross-tab lock, polling, or cart cache. Backend ownership,
 stock checks, and transaction locks remain authoritative. No dependency,
 migration, live purchase, `.env` change, deletion, or commit is part of this work.
+
+See [the state architecture audit](state-architecture.md) for the mechanism-by-mechanism decisions.

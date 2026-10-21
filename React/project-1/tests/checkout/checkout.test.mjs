@@ -2,13 +2,17 @@ import assert from "node:assert/strict";
 import { after, test } from "node:test";
 import React from "react";
 import { renderToString } from "react-dom/server";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { MemoryRouter, Router, Routes, Route } from "react-router-dom";
 import { createServer } from "vite";
-import { createCheckoutSession, canSubmitCheckout } from "../../src/context/checkoutSession.js";
+import { mountProvider } from "../helpers/providerHarness.mjs";
+import { canSubmitCheckout } from "../../src/context/checkoutSession.js";
 import { purchaseSummary, purchaseStatusText } from "../../src/utils/purchase.js";
 
 const server = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: "custom" });
 after(() => server.close());
+const { default: AuthProvider } = await server.ssrLoadModule("/src/context/AuthProvider.jsx");
+const { default: useAuthContext } = await server.ssrLoadModule("/src/hooks/useAuthContext.js");
+const { default: CheckoutProvider } = await server.ssrLoadModule("/src/context/CheckoutProvider.jsx");
 const { default: CheckoutPage } = await server.ssrLoadModule("/src/components/checkout/CheckoutPage.jsx");
 const { default: ConfirmationPage } = await server.ssrLoadModule("/src/components/checkout/ConfirmationPage.jsx");
 const { default: PurchaseConfirmation } = await server.ssrLoadModule("/src/components/checkout/PurchaseConfirmation.jsx");
@@ -18,6 +22,25 @@ const { CartContext } = await server.ssrLoadModule("/src/context/CartContext.js"
 const { AuthContext } = await server.ssrLoadModule("/src/context/AuthContext.js");
 const { getPurchaseConfirmation } = await server.ssrLoadModule("/src/api/salesApi.js");
 const { createAuthSession } = await server.ssrLoadModule("/src/context/authSession.js");
+
+// The adapter mounts the actual provider and exposes actions for the existing scenarios.
+function mountCheckout(services, auth, cart) {
+  let context, cleanup;
+  const session = { ...auth, registerSessionCleanup: (reset) => {
+    cleanup = reset; return auth.registerSessionCleanup?.(reset) || (() => {}); } };
+  const api = { getProducts: async () => [], ...services };
+  const cartActions = { getCartSnapshot: () => cart.getCartSnapshot(),
+    beginCheckout: (...args) => cart.beginCheckout(...args),
+    refreshCart: (...args) => cart.refreshCart?.(...args), clearCartState: () => cart.clearCartState?.() };
+  function Probe() { context = useCheckoutContext(); return null; }
+  const host = mountProvider(() => React.createElement(MemoryRouter, null,
+    React.createElement(AuthContext.Provider, { value: { ...auth, registerSessionCleanup: session.registerSessionCleanup } },
+      React.createElement(CartContext.Provider, { value: { ...cart.getCartSnapshot(), ...cartActions } },
+        React.createElement(CheckoutProvider, { services: api }, React.createElement(Probe))))));
+  const actions = Object.fromEntries(["setField", "submit", "cancelDraft", "startNewPurchase"]
+    .map((name) => [name, (...args) => { host.render(); return host.start(() => context[name](...args)); }]));
+  return { ...actions, reset: () => host.start(() => cleanup()), host, getSnapshot: () => { host.render(); return context; } };
+}
 
 const COMPLETED_PURCHASE_TITLE = "¡Gracias por tu compra!";
 const EMAIL_MESSAGES = {
@@ -29,7 +52,7 @@ const EMAIL_MESSAGES = {
 
 function purchase(emailStatus = "sent") {
   return { sale: { id: 10, user_id: 2, cart_id: 3, status: "completed", email_status: emailStatus,
-    full_name: "Ana Ejemplo", buyer_email: "ana@example.com", shipping_address: { line1: "Calle 1" },
+    full_name: "Ana Ejemplo", buyer_email: "ana@example.com", shipping_address: "Calle 1",
     subtotal_amount: "25.00", tax_amount: "0.00", total_amount: "25.00",
     items: [{ id: 11, product_id: 4, product_name: "Alimento", quantity: 2, unit_price: "12.50", line_total: "25.00" }] },
   invoice: { id: 9, sale_id: 10, invoice_number: "INV-000010", status: "issued", total_amount: "25.00" } };
@@ -38,7 +61,7 @@ function fixture(operation = async () => purchase()) {
   let current = true;
   const calls = [], successes = [];
   let keys = 0;
-  let cartState = { cart: { id: 3 }, items: [{ id: 11 }], canCheckout: true, cartVersion: 1, loading: false, checkoutLocked: false };
+  let cartState = { cart: { id: 3, total: "25.00" }, items: [{ id: 11, product_id: 4, quantity: 2 }], canCheckout: true, cartVersion: 1, loading: false, checkoutLocked: false };
   const auth = { isClient: true, currentUser: { id: 2, first_name: "Ana", last_name: "Ejemplo", email: "ana@example.com" },
     isCurrentSession: () => current, runProtectedRequest: (work) => work("test-only-credential") };
   const cart = { getCartSnapshot: () => cartState, beginCheckout: () => {
@@ -46,11 +69,9 @@ function fixture(operation = async () => purchase()) {
     cartState = { ...cartState, checkoutLocked: true };
     return () => { cartState = { ...cartState, checkoutLocked: false }; };
   } };
-  const store = createCheckoutSession({ checkoutPurchase: (...args) => { calls.push(args); return operation(...args); },
+  const store = mountCheckout({ checkoutPurchase: (...args) => { calls.push(args); return operation(...args); },
     createKey: () => `attempt-${++keys}`, onSuccess: (value) => successes.push(value) }, auth, cart);
-  for (const [field, value] of Object.entries({ line1: "Calle 1", city: "San José", province: "San José", postal_code: "10101" })) {
-    store.setField(`shipping_address.${field}`, value);
-  }
+  store.setField("shipping_address", "Calle 1");
   return { store, calls, successes, auth, cart, keys: () => keys,
     patchCart: (patch) => { cartState = { ...cartState, ...patch }; },
     logout: () => { current = false; store.reset(); } };
@@ -67,6 +88,7 @@ test("synchronous double click and Enter share one request and one key", async (
   assert.equal(f.keys(), 1); assert.equal(f.successes.length, 1);
   assert.equal(f.cart.getCartSnapshot().checkoutLocked, false);
   assert.equal(f.store.getSnapshot().draft.buyer_email, "");
+  assert.equal(f.store.getSnapshot().draft.shipping_address, "");
   assert.equal(Object.hasOwn(f.successes[0].sale, "shipping_address"), false);
 });
 
@@ -76,7 +98,7 @@ test("network ambiguity freezes buyer data and replays the identical key and pay
   await f.store.submit(); assert.equal(f.store.getSnapshot().status, "uncertain");
   assert.equal(f.successes.length, 0);
   f.store.setField("full_name", "Otro nombre"); f.store.cancelDraft();
-  f.patchCart({ cart: { id: 5 }, items: [], canCheckout: false });
+  f.patchCart({ cart: { id: 5, total: "25.00" }, items: [], canCheckout: false });
   fail = false; await f.store.submit();
   assert.equal(f.calls.length, 2); assert.equal(f.calls[0][0], f.calls[1][0]);
   assert.equal(f.calls[0][2], f.calls[1][2]); assert.equal(f.keys(), 1);
@@ -100,15 +122,15 @@ test("SMTP failed and pending remain successful purchases; malformed and wrong-o
   }
 });
 
-test("validation retains form and attempt key; stock conflicts require an authoritative cart review", async () => {
+test("validation retains form and replaces the rejected attempt key; stock conflicts require an authoritative cart review", async () => {
   let fail = true;
   const f = fixture(async () => { if (fail) throw { status: 400, details: { buyer_email: "untrusted personal data" } }; return purchase(); });
   await f.store.submit();
   assert.equal(f.store.getSnapshot().status, "rejected");
-  assert.equal(f.store.getSnapshot().draft.shipping_address.line1, "Calle 1");
+  assert.equal(f.store.getSnapshot().draft.shipping_address, "Calle 1");
   assert.doesNotMatch(f.store.getSnapshot().fieldErrors.buyer_email, /untrusted/);
   f.store.setField("buyer_email", "otra@example.com"); fail = false; await f.store.submit();
-  assert.equal(f.keys(), 1);
+  assert.equal(f.keys(), 2);
   const stock = fixture(async () => { throw { status: 400, message: "Insufficient stock for one or more products." }; });
   await stock.store.submit();
   assert.equal(stock.store.getSnapshot().error,
@@ -124,7 +146,7 @@ test("logout or expired-token invalidation ignores a late response and drops buy
   const submission = f.store.submit(); await Promise.resolve(); f.logout();
   pending.resolve(purchase()); await submission;
   assert.equal(f.successes.length, 0); assert.equal(f.store.getSnapshot().saleId, null);
-  assert.equal(f.store.getSnapshot().draft.shipping_address.line1, "");
+  assert.equal(f.store.getSnapshot().draft.shipping_address, "");
   assert.equal(f.cart.getCartSnapshot().checkoutLocked, false);
 });
 
@@ -134,17 +156,18 @@ test("protected checkout 401/422 invalidates authentication and checkout memory 
     await auth.login({});
     const version = auth.getSnapshot().sessionVersion;
     const f = fixture();
-    const store = createCheckoutSession({ createKey: () => "expiry-attempt", checkoutPurchase: async () => { throw { status }; },
+    const store = mountCheckout({ createKey: () => "expiry-attempt", checkoutPurchase: async () => { throw { status }; },
       onSuccess: () => assert.fail("Expired request must not succeed") }, {
       ...auth.getSnapshot(), isCurrentSession: () => auth.isCurrentSession(version),
       runProtectedRequest: (operation) => auth.runProtectedRequest(operation, version),
     }, f.cart);
     auth.registerSessionCleanup(store.reset);
-    for (const [field, value] of Object.entries(f.store.getSnapshot().draft.shipping_address)) store.setField(`shipping_address.${field}`, value);
+    store.setField("shipping_address", f.store.getSnapshot().draft.shipping_address);
     store.setField("full_name", "Ana Ejemplo"); store.setField("buyer_email", "ana@example.com");
     await store.submit();
     assert.equal(auth.getSnapshot().isAuthenticated, false);
     assert.equal(store.getSnapshot().status, "editing"); assert.equal(store.getSnapshot().draft.buyer_email, "");
+    assert.equal(store.getSnapshot().draft.shipping_address, "");
   }
 });
 
@@ -153,12 +176,14 @@ test("empty/admin/queued cart states cannot submit; only a new cart after succes
   f.patchCart({ canCheckout: false }); await f.store.submit(); assert.equal(f.calls.length, 0);
   f.patchCart({ canCheckout: true, loading: true }); await f.store.submit(); assert.equal(f.calls.length, 0);
   f.patchCart({ loading: false }); f.auth.isClient = false; await f.store.submit(); assert.equal(f.calls.length, 0);
-  f.auth.isClient = true; await f.store.submit(); await f.store.submit(); assert.equal(f.calls.length, 1);
+  assert.equal(f.store.getSnapshot().draft.shipping_address, "");
+  f.auth.isClient = true; f.store.setField("shipping_address", "Calle 1");
+  await f.store.submit(); await f.store.submit(); assert.equal(f.calls.length, 1);
   f.store.startNewPurchase(); assert.equal(f.store.getSnapshot().status, "succeeded");
-  f.patchCart({ cart: { id: 5 } }); f.store.startNewPurchase();
+  f.patchCart({ cart: { id: 5, total: "25.00" } }); f.store.startNewPurchase();
   assert.equal(f.store.getSnapshot().status, "editing");
-  assert.equal(f.store.getSnapshot().draft.shipping_address.line1, "");
-  for (const [name, value] of Object.entries({ line1: "Calle 2", city: "Heredia", province: "Heredia", postal_code: "40101" })) f.store.setField(`shipping_address.${name}`, value);
+  assert.equal(f.store.getSnapshot().draft.shipping_address, "");
+  f.store.setField("shipping_address", "Calle 2, Heredia");
   await f.store.submit(); assert.equal(f.keys(), 2); assert.equal(f.successes.length, 2);
 });
 
@@ -224,10 +249,10 @@ function renderCheckout(patch = {}, cartPatch = {}) {
   return renderToString(React.createElement(MemoryRouter, null,
     React.createElement(CartContext.Provider, { value: cart }, React.createElement(CheckoutContext.Provider, { value }, React.createElement(CheckoutPage)))));
 }
-test("checkout has structured labelled fields, server summary, safe prefill and no payment or phone inputs", () => {
+test("checkout has three labelled buyer fields, server summary, safe prefill and no payment or phone inputs", () => {
   const html = renderCheckout();
-  for (const text of ["Información de compra", "Resumen del pedido", "Confirmar compra", "Cancelar", "Nombre completo", "Correo electrónico", "Código postal"]) assert.equal(html.includes(text), true);
-  assert.match(html, /name="shipping_address.line1"/); assert.match(html, /value="Ana Ejemplo"/);
+  for (const text of ["Información de compra", "Resumen del pedido", "Confirmar compra", "Cancelar", "Nombre completo", "Correo electrónico", "Dirección de envío"]) assert.equal(html.includes(text), true);
+  assert.match(html, /name="shipping_address"/); assert.match(html, /value="Ana Ejemplo"/);
   assert.doesNotMatch(html, /name="(?:total|price|user_id|phone|telephone|payment)"/);
   assert.match(html, /href="\/carrito"/);
   const busy = renderCheckout({ status: "submitting", formLocked: true, canSubmit: false });
@@ -239,22 +264,20 @@ test("checkout has structured labelled fields, server summary, safe prefill and 
 
 const GENERAL_CHECKOUT_ERROR = "Ocurrió un problema al procesar tu compra. Por favor intenta de nuevo.";
 
-test("checkout displays exact assignment text with associated structured fields and one submit button", () => {
+test("checkout displays exact assignment text with three associated buyer fields and one submit button", () => {
   const html = renderCheckout();
   assert.equal((html.match(/<h1>/g) || []).length, 1);
   assert.match(html, /<h1>Checkout<\/h1><p class="checkout-intro">Revisa los detalles de tu compra y completa la información necesaria para finalizar el pedido\.<\/p>/);
   for (const [field, label] of [
     ["full_name", "Nombre completo"], ["buyer_email", "Correo electrónico"],
-    ["line1", "Dirección de envío"], ["line2", "Dirección adicional (opcional)"],
-    ["city", "Ciudad"], ["province", "Provincia"], ["postal_code", "Código postal"],
-    ["country", "País (código de dos letras)"],
+    ["shipping_address", "Dirección de envío"],
   ]) {
     assert.ok(html.includes(`<label for="buyer-${field}">${label}</label>`));
-    const name = ["full_name", "buyer_email"].includes(field) ? field : `shipping_address.${field}`;
-    const input = html.match(new RegExp(`<input[^>]*id="buyer-${field}"[^>]*>`))?.[0];
+    const name = field;
+    const input = html.match(new RegExp(`<(?:input|textarea)[^>]*id="buyer-${field}"[^>]*>`))?.[0];
     assert.ok(input?.includes(`name="${name}"`));
   }
-  assert.match(html, /id="buyer-buyer_email" type="email" autoComplete="email"/i);
+  assert.match(html, /<input(?=[^>]*name="buyer_email")(?=[^>]*type="email")(?=[^>]*autoComplete="email")[^>]*>/i);
   assert.equal((html.match(/type="submit"/g) || []).length, 1);
   assert.match(html, /type="submit">Confirmar compra<\/button>/);
   assert.equal(html.includes(GENERAL_CHECKOUT_ERROR), false);
@@ -315,9 +338,9 @@ test("local validation, cart readiness and unavailable key generation never beco
 
   let requests = 0;
   const f = fixture();
-  const store = createCheckoutSession({ createKey: () => null,
+  const store = mountCheckout({ createKey: () => null,
     checkoutPurchase: () => { requests += 1; } }, f.auth, f.cart);
-  for (const [field, value] of Object.entries(f.store.getSnapshot().draft.shipping_address)) store.setField(`shipping_address.${field}`, value);
+  store.setField("shipping_address", f.store.getSnapshot().draft.shipping_address);
   await store.submit();
   assert.equal(requests, 0);
   const keyHtml = renderCheckout(store.getSnapshot());
@@ -412,4 +435,213 @@ test("cancelled and returned confirmations retain their non-success copy and pur
     assert.match(html, /Resumen de la compra/);
     assert.match(html, /Alimento/);
   }
+});
+
+
+test("attempt freezes the loaded cart and exact total before the request begins", async () => {
+  const pending = deferred();
+  const f = fixture(() => pending.promise);
+  const originalItems = [{ product_id: 19, quantity: 1, name: "Cama" }, { product_id: 12, quantity: 2, unit_price: "8500.00" }];
+  f.patchCart({ items: originalItems, cart: { id: 3, total: "38500.00" } });
+  const submission = f.store.submit();
+  originalItems[0].quantity = 99;
+  f.patchCart({ items: [], cart: { id: 3, total: "0.00" } });
+  await Promise.resolve();
+  const payload = f.calls[0][0];
+  assert.deepEqual(payload.items, [{ product_id: 19, quantity: 1 }, { product_id: 12, quantity: 2 }]);
+  assert.equal(payload.total_amount, "38500.00");
+  assert.equal(Object.isFrozen(payload.items[0]), true);
+  assert.equal(payload.shipping_address, "Calle 1");
+  pending.reject({ status: 0 }); await submission;
+  await f.store.submit();
+  assert.equal(f.calls[1][0], payload);
+  assert.equal(f.calls[0][2], f.calls[1][2]);
+});
+
+test("invalid cart snapshots cannot submit even when readiness is incorrectly true", async () => {
+  for (const patch of [{ items: [] }, { items: [{ product_id: 4, quantity: 0 }] },
+    { items: [{ product_id: 4, quantity: 1 }, { product_id: 4, quantity: 2 }] },
+    { cart: { id: 3 } }, { cart: { id: 3, total: 25 } }, { cart: { id: 3, total: "25,00" } }]) {
+    const f = fixture(); f.patchCart(patch); await f.store.submit();
+    assert.equal(f.calls.length, 0); assert.equal(f.keys(), 0);
+  }
+});
+
+test("cart and total conflicts preserve the form, refresh and require explicit new confirmation", async () => {
+  for (const message of ["Checkout cart snapshot does not match the active cart.", "Checkout total does not match the current cart total."]) {
+    let fail = true, refreshes = 0;
+    const f = fixture(async () => { if (fail) throw { status: 409, message }; return purchase(); });
+    f.cart.refreshCart = async () => {
+      assert.equal(f.cart.getCartSnapshot().checkoutLocked, false);
+      refreshes += 1;
+      f.patchCart({ cartVersion: 2, cart: { id: 3, total: "30.00" }, items: [{ product_id: 4, quantity: 3 }] });
+    };
+    const draft = f.store.getSnapshot().draft;
+    await f.store.submit();
+    assert.equal(f.calls.length, 1); assert.equal(refreshes, 1);
+    assert.equal(f.store.getSnapshot().status, "rejected");
+    assert.equal(f.store.getSnapshot().draft, draft);
+    assert.equal(f.store.getSnapshot().error, "El carrito cambió desde que se preparó la compra. Revisa los productos y vuelve a intentarlo.");
+    fail = false; await f.store.submit();
+    assert.equal(f.calls.length, 2); assert.notEqual(f.calls[0][2], f.calls[1][2]);
+    assert.equal(f.calls[1][0].total_amount, "30.00");
+    assert.deepEqual(f.calls[1][0].items, [{ product_id: 4, quantity: 3 }]);
+  }
+});
+
+test("failed conflict refresh blocks submission until a successful authoritative refresh", async () => {
+  const f = fixture(async () => { throw { status: 409, message: "Checkout total does not match the current cart total." }; });
+  f.cart.refreshCart = async () => { throw new Error("Offline"); };
+  await f.store.submit(); await f.store.submit();
+  assert.equal(f.calls.length, 1);
+  assert.equal(f.store.getSnapshot().draft.full_name, "Ana Ejemplo");
+  assert.equal(canSubmitCheckout(f.store.getSnapshot(), f.cart.getCartSnapshot()), false);
+});
+
+test("known rejection followed by cart refresh starts a new attempt even for an identical snapshot", async () => {
+  const f = fixture(async () => { throw { status: 400 }; });
+  await f.store.submit(); f.patchCart({ cartVersion: 2 }); await f.store.submit();
+  assert.equal(f.calls.length, 2); assert.notEqual(f.calls[0][2], f.calls[1][2]);
+});
+
+
+test("checkout exposes exactly three buyer controls and one accessible address textarea", () => {
+  const html = renderCheckout();
+  const fields = html.match(/<fieldset[\s\S]*?<\/fieldset>/)[0];
+  assert.equal((fields.match(/<input /g) || []).length, 2);
+  assert.equal((fields.match(/<textarea /g) || []).length, 1);
+  assert.deepEqual([...fields.matchAll(/<(?:input|textarea)[^>]*name="([^"]+)"/g)].map((match) => match[1]),
+    ["full_name", "buyer_email", "shipping_address"]);
+  assert.match(fields, /<textarea[^>]*autoComplete="street-address"[^>]*maxLength="500"/i);
+  assert.doesNotMatch(fields, /Ciudad|Provincia|Código postal|País|country|postal_code|line1|line2|shipping_address\./);
+  assert.match(html, /<button[^>]*type="submit"[^>]*>Confirmar compra<\/button>/);
+});
+
+test("address validation maps to the visible control and accepts natural multiline text without codes", async () => {
+  for (const address of ["", "  ", "\r\n  ", "a".repeat(501)]) {
+    const f = fixture(); f.store.setField("shipping_address", address); await f.store.submit();
+    assert.equal(f.calls.length, 0);
+    const state = f.store.getSnapshot();
+    assert.ok(state.fieldErrors.shipping_address);
+    const html = renderCheckout(state);
+    assert.match(html, /<textarea[^>]*aria-invalid="true"[^>]*aria-describedby="buyer-shipping_address-error"/);
+    assert.ok(html.includes(`<p id="buyer-shipping_address-error" class="checkout-field-error">${state.fieldErrors.shipping_address}</p>`));
+  }
+  const f = fixture(async () => { throw { status: 0 }; });
+  f.store.setField("shipping_address", "  Del parque de San José, 200 metros al norte.\r\nEdificio azul, apartamento 3.  ");
+  await f.store.submit();
+  assert.equal(f.calls[0][0].shipping_address, "Del parque de San José, 200 metros al norte.\nEdificio azul, apartamento 3.");
+  f.store.setField("shipping_address", "Cambio"); await f.store.submit();
+  assert.equal(f.calls[1][0], f.calls[0][0]);
+  assert.equal(f.calls[1][2], f.calls[0][2]);
+  assert.equal(typeof f.store.getSnapshot().draft.shipping_address, "string");
+});
+
+
+test("mounted StrictMode checkout submits once and navigates once after verified success", async (t) => {
+  let calls = 0;
+  const pending = deferred();
+  t.mock.method(globalThis, "fetch", async (url) => {
+    if (new URL(url).pathname === "/sales/checkout") { calls += 1; await pending.promise;
+      return new Response(JSON.stringify({ data: purchase() }), { status: 201, headers: { "Content-Type": "application/json" } }); }
+    return new Response(JSON.stringify({ data: { products: [] } }), { headers: { "Content-Type": "application/json" } });
+  });
+  let context;
+  const navigations = [];
+  const auth = { isClient: true, currentUser: { id: 2 }, isCurrentSession: () => true,
+    runProtectedRequest: (work) => work("test-only-credential"), registerSessionCleanup: () => () => {} };
+  const cart = { cart: { id: 3, total: "25.00" }, items: [{ product_id: 4, quantity: 2 }],
+    canCheckout: true, cartVersion: 1, loading: false, checkoutLocked: false };
+  const cartContext = { ...cart, getCartSnapshot: () => cart, beginCheckout: () => () => {},
+    clearCartState() {}, refreshCart: async () => null };
+  const navigator = { createHref: (to) => to.pathname, push: (to) => navigations.push(to),
+    replace: (to) => navigations.push(to), go() {} };
+  function Probe() { context = useCheckoutContext(); return null; }
+  const host = mountProvider(() => React.createElement(Router, { location: "/checkout", navigator },
+    React.createElement(AuthContext.Provider, { value: auth },
+      React.createElement(CartContext.Provider, { value: cartContext },
+        React.createElement(CheckoutProvider, null, React.createElement(Probe))))), { strict: true });
+  assert.equal(calls, 0);
+  host.start(() => { context.setField("full_name", "Ana Ejemplo"); context.setField("buyer_email", "ana@example.com");
+    context.setField("shipping_address", "Calle 1"); });
+  let first, second;
+  host.start(() => { first = context.submit(); second = context.submit(); });
+  assert.equal(first, second);
+  await host.flush(); assert.equal(calls, 1);
+  pending.resolve(); await host.run(() => first);
+  assert.deepEqual(navigations.map((to) => to.pathname), ["/compra/10"]);
+  await host.run(() => context.submit());
+  assert.equal(calls, 1); assert.equal(navigations.length, 1);
+  host.unmount();
+});
+
+
+test("one mounted checkout drops old-user attempts and blocks saved callbacks after a new login", async (t) => {
+  let userId = 1;
+  t.mock.method(globalThis, "fetch", async () => new Response(JSON.stringify({ data: {
+    access_token: `test-only-${userId}`, user: { id: userId, role: "client", first_name: "Ana", email: "ana@example.com" }
+  } }), { headers: { "Content-Type": "application/json" } }));
+  const pending = deferred(), newer = deferred();
+  let calls = 0, key = 0, oldSignal, auth, checkout;
+  const successes = [], navigations = [];
+  const services = { createKey: () => `attempt-${++key}`, getProducts: async () => [],
+    checkoutPurchase: (payload, token, attempt, { signal }) => {
+      calls += 1;
+      if (calls === 1) { oldSignal = signal; return pending.promise; }
+      return newer.promise;
+    }, onSuccess: (summary) => successes.push(summary) };
+  const cartState = { cart: { id: 3, total: "25.00" }, items: [{ product_id: 4, quantity: 2 }],
+    canCheckout: true, cartVersion: 1, loading: false, checkoutLocked: false };
+  const cart = { ...cartState, getCartSnapshot: () => cartState, beginCheckout: () => () => {},
+    clearCartState() {}, refreshCart: async () => null };
+  const navigator = { createHref: (to) => to.pathname, push: (to) => navigations.push(to),
+    replace: (to) => navigations.push(to), go() {} };
+  function Probe() { auth = useAuthContext(); checkout = useCheckoutContext(); return null; }
+  const host = mountProvider(() => React.createElement(Router, { location: "/checkout", navigator },
+    React.createElement(AuthProvider, null, React.createElement(CartContext.Provider, { value: cart },
+      React.createElement(CheckoutProvider, { services }, React.createElement(Probe))))));
+  await host.run(() => auth.login({}));
+  host.start(() => checkout.setField("shipping_address", "Calle 1"));
+  const previous = checkout, first = host.start(() => checkout.submit());
+  await host.flush(); assert.equal(calls, 1);
+  host.start(() => auth.logout()); assert.equal(oldSignal.aborted, true);
+  assert.equal(checkout.draft.shipping_address, "");
+  userId = 2; await host.run(() => auth.login({}));
+  assert.equal(checkout.draft.shipping_address, ""); assert.equal(checkout.status, "editing");
+  host.start(() => checkout.setField("shipping_address", "Calle 2"));
+  const second = host.start(() => checkout.submit()); await host.flush();
+  const ignored = await host.run(() => previous.submit());
+  assert.equal(ignored, null); assert.equal(calls, 2); assert.equal(key, 2);
+  host.start(() => { previous.setField("shipping_address", "Old user"); previous.cancelDraft(); });
+  assert.equal(checkout.draft.shipping_address, "Calle 2");
+  const oldPurchase = purchase(); oldPurchase.sale.user_id = 1;
+  pending.resolve(oldPurchase); await host.run(() => first);
+  assert.equal(successes.length, 0); assert.equal(checkout.status, "submitting");
+  newer.resolve(purchase()); await host.run(() => second);
+  assert.equal(successes.length, 1); assert.equal(successes[0].sale.user_id, 2);
+  assert.deepEqual(navigations.map((to) => to.pathname), ["/compra/10"]);
+  host.unmount();
+});
+
+test("editing one field clears only its own validation error", async () => {
+  const f = fixture(async () => { throw { status: 400, details: { buyer_email: "Invalid value.", shipping_address: "Invalid value." } }; });
+  await f.store.submit();
+  const before = f.store.getSnapshot();
+  assert.ok(before.fieldErrors.buyer_email); assert.ok(before.fieldErrors.shipping_address);
+  f.store.setField("buyer_email", "otra@example.com");
+  assert.equal(f.store.getSnapshot().fieldErrors.buyer_email, undefined);
+  assert.equal(f.store.getSnapshot().fieldErrors.shipping_address, before.fieldErrors.shipping_address);
+});
+
+
+test("unmount aborts checkout transport and ignores its late successful result", async () => {
+  const pending = deferred();
+  let signal;
+  const f = fixture((payload, token, key, options) => { signal = options.signal; return pending.promise; });
+  const request = f.store.submit(); await Promise.resolve();
+  assert.equal(signal.aborted, false);
+  f.store.host.unmount();
+  assert.equal(signal.aborted, true);
+  pending.resolve(purchase()); await request;
+  assert.equal(f.successes.length, 0);
 });

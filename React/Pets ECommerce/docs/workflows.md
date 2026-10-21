@@ -93,6 +93,11 @@ checkout contract and migration deployment gates are documented in
 approving both additive checkout/email migrations. This documentation update
 applies none and does not inspect a live applied revision. The
 email transport is disabled by default; see [email setup](email.md).
+Before integration, account for the documented contract mismatch: current code
+requires a text address plus items/total comparison snapshots, while repository
+instructions require a structured address and buyer-only input. Resolve any
+contract change through separate approval rather than deploying from an older
+request example.
 
 React consumes authentication, public/admin products, client cart, checkout,
 and owner-only confirmation with invoice data. Backend email retry and

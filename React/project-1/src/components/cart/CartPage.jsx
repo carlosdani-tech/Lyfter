@@ -98,7 +98,7 @@ export default function CartPage() {
             {initialLoading ? <div className="cart-empty" aria-busy="true"><div className="spinner" aria-hidden="true" /><p>Cargando productos...</p></div> :
               !cart ? <div className="cart-empty"><h2>No pudimos cargar tu carrito</h2><p>Intenta actualizarlo para continuar.</p><Link to="/productos">Ver productos</Link></div> :
               items.length === 0 ? <div className="cart-empty">
-                <span className="cart-empty__icon" aria-hidden="true">🐾</span><h2>Tu carrito está vacío</h2>
+                <span className="cart-empty__icon" aria-hidden="true">🐾</span><h2>Tu carrito está vacío.</h2>
                 <p>Encuentra algo especial para tu mascota.</p><Link className="cart-primary" to="/productos">Ver productos</Link>
               </div> : <ul className="cart-items">{items.map((item) => <CartItem key={item.id} item={item}
                 onItemRemoved={() => headingRef.current?.focus()} />)}</ul>}

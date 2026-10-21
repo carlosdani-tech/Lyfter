@@ -10,12 +10,7 @@ const GENERAL_CHECKOUT_ERROR =
 const FIELDS = [
   ["full_name", "Nombre completo", 200, "name"],
   ["buyer_email", "Correo electrónico", 254, "email"],
-  ["line1", "Dirección de envío", 200, "address-line1"],
-  ["line2", "Dirección adicional (opcional)", 200, "address-line2"],
-  ["city", "Ciudad", 100, "address-level2"],
-  ["province", "Provincia", 100, "address-level1"],
-  ["postal_code", "Código postal", 20, "postal-code"],
-  ["country", "País (código de dos letras)", 2, "country"],
+  ["shipping_address", "Dirección de envío", 500, "street-address"],
 ];
 
 export default function CheckoutPage() {
@@ -44,17 +39,18 @@ export default function CheckoutPage() {
         <fieldset className="checkout-fields" disabled={checkout.formLocked}>
           <legend className="sr-only">Datos para completar la compra</legend>
           {FIELDS.map(([name, label, maxLength, autoComplete]) => {
-            const address = !["full_name", "buyer_email"].includes(name);
-            const field = address ? `shipping_address.${name}` : name;
-            const value = address ? checkout.draft.shipping_address[name] : checkout.draft[name];
-            const error = checkout.fieldErrors[field];
-            return <div className={`checkout-field${["full_name", "buyer_email", "line1", "line2"].includes(name) ? " checkout-field--wide" : ""}`} key={field}>
+            const error = checkout.fieldErrors[name];
+            const controlProps = {
+              id: `buyer-${name}`, name, autoComplete, value: checkout.draft[name], maxLength,
+              required: true, "aria-invalid": Boolean(error),
+              "aria-describedby": error ? `buyer-${name}-error` : undefined,
+              onChange: (event) => checkout.setField(name, event.target.value),
+            };
+            return <div className="checkout-field checkout-field--wide" key={name}>
               <label htmlFor={`buyer-${name}`}>{label}</label>
-              <input id={`buyer-${name}`} name={field} type={name === "buyer_email" ? "email" : "text"}
-                autoComplete={autoComplete} value={value} maxLength={maxLength} required={name !== "line2"}
-                pattern={name === "country" ? "[A-Za-z]{2}" : undefined}
-                aria-invalid={Boolean(error)} aria-describedby={error ? `buyer-${name}-error` : undefined}
-                onChange={(event) => checkout.setField(field, event.target.value)} />
+              {name === "shipping_address"
+                ? <textarea {...controlProps} rows={4} />
+                : <input {...controlProps} type={name === "buyer_email" ? "email" : "text"} />}
               {error && <p id={`buyer-${name}-error`} className="checkout-field-error">{error}</p>}
             </div>;
           })}

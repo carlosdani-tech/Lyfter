@@ -131,6 +131,10 @@ class SaleService:
             cart_items = CartRepository.lock_items(cart.id)
             if not cart_items:
                 raise SaleError("Active cart has no items.", 400)
+            submitted = sorted((item["product_id"], item["quantity"]) for item in payload["items"])
+            actual = sorted((item.product_id, item.quantity) for item in cart_items)
+            if submitted != actual:
+                raise SaleError("Checkout cart snapshot does not match the active cart.", 409)
             product_ids = {item.product_id for item in cart_items}
             products = {p.id: p for p in ProductRepository.lock_by_ids(product_ids)}
             for item in cart_items:
@@ -147,6 +151,8 @@ class SaleService:
                 raise SaleError("Purchase total exceeds the supported limit.", 400)
             tax_amount = Decimal("0.00")
             total_amount = subtotal + tax_amount
+            if Decimal(payload["total_amount"]) != total_amount:
+                raise SaleError("Checkout total does not match the current cart total.", 409)
             now = utc_now()
 
             sale = SaleRepository.create(
@@ -161,7 +167,7 @@ class SaleService:
                 request_fingerprint=fingerprint,
                 full_name=payload["full_name"],
                 buyer_email=payload["buyer_email"],
-                shipping_address=dict(payload["shipping_address"]),
+                shipping_address=payload["shipping_address"],
             )
 
             for item in cart_items:

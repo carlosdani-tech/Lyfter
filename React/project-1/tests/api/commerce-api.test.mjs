@@ -10,8 +10,9 @@ const { request } = await server.ssrLoadModule("/src/api/apiClient.js");
 const cart = { id: 1, items: [], subtotal: "0.00", total: "0.00" };
 const purchase = { sale: { id: 1, email_status: "failed", total_amount: "25.00" }, invoice: { id: 2 } };
 const buyer = {
+  items: [{ product_id: 12, quantity: 2 }], total_amount: "17000.00",
   full_name: "Ana Ejemplo", buyer_email: "ana@example.com",
-  shipping_address: { line1: "Calle 1", city: "San José", province: "San José", postal_code: "10101", country: "CR" },
+  shipping_address: "Del parque central de San José, 200 metros al norte, edificio azul.",
 };
 const credential = "test-only-credential";
 
@@ -67,11 +68,11 @@ test("missing or unsafe credentials never reach fetch", async (t) => {
   assert.equal(calls.length, 0);
 });
 
-test("checkout sends only approved buyer/address fields and exact idempotency header", async (t) => {
+test("checkout sends only approved buyer/address/snapshot fields and exact idempotency header", async (t) => {
   const calls = mockFetch(t, { data: purchase }, 201);
   const source = {
-    ...buyer, user_id: 99, role: "admin", price: 1, total: 1, items: [], invoice_number: "ignored", status: "completed",
-    toJSON: () => ({ total: 1 }), shipping_address: { ...buyer.shipping_address, owner: 99 },
+    ...buyer, user_id: 99, role: "admin", price: 1, total: 1, items: [{ product_id: 12, quantity: 2, price: 8500, name: "Alimento", product: { id: 12 }, toJSON: () => ({ user_id: 99 }) }], invoice_number: "ignored", status: "completed",
+    toJSON: () => ({ total: 1 }), shipping_address: `  ${buyer.shipping_address}  `, country: "CR", line1: "ignored", city: "ignored", province: "ignored", postal_code: "ignored", line2: "ignored",
   };
   const result = await checkoutPurchase(source, credential, "purchase._:-123");
   assert.equal(calls.length, 1);
@@ -79,8 +80,8 @@ test("checkout sends only approved buyer/address fields and exact idempotency he
   assert.equal(calls[0].method, "POST");
   checkAuthorization(calls[0]);
   assert.equal(calls[0].headers.get("Idempotency-Key"), "purchase._:-123");
-  assert.deepEqual(JSON.parse(calls[0].body), { ...buyer, shipping_address: { ...buyer.shipping_address, line2: null } });
-  assert.equal(Object.hasOwn(source.shipping_address, "line2"), false);
+  assert.deepEqual(JSON.parse(calls[0].body), buyer);
+  assert.equal(typeof JSON.parse(calls[0].body).shipping_address, "string");
   assert.deepEqual(result.sale, purchase.sale);
   assert.deepEqual(result.invoice, purchase.invoice);
   assert.equal(result.idempotencyKey, "purchase._:-123");
@@ -111,7 +112,7 @@ test("invalid checkout keys and non-scalar buyer fields fail before fetch", asyn
 test("backend structured validation is retained, with untrusted fields/messages sanitized", async (t) => {
   mockFetch(t, { error: { message: "Invalid request payload.", details: {
     buyer_email: "Must be a valid email address.",
-    "shipping_address.city": "Must contain 1 to 100 characters without control characters.",
+    shipping_address: "Must contain 1 to 500 characters without control characters except line breaks.",
     full_name: "unsafe-provider-content", debug: "unsafe-provider-content",
   } } }, 400);
   await assert.rejects(checkoutPurchase(buyer, credential, "attempt-1"), (error) => {
@@ -119,7 +120,7 @@ test("backend structured validation is retained, with untrusted fields/messages 
     assert.equal(error.message, "Invalid request payload.");
     assert.deepEqual(error.details, {
       buyer_email: "Must be a valid email address.",
-      "shipping_address.city": "Must contain 1 to 100 characters without control characters.", full_name: "Invalid value.",
+      shipping_address: "Must contain 1 to 500 characters without control characters except line breaks.", full_name: "Invalid value.",
     });
     assert.equal(error.idempotencyKey, "attempt-1");
     return true;
@@ -148,6 +149,7 @@ test("matching caller-initiated replay returns the backend purchase with the sam
   const first = await checkoutPurchase(buyer, credential, "attempt-1");
   const replay = await checkoutPurchase(buyer, credential, first.idempotencyKey);
   assert.deepEqual(replay, first);
+  assert.equal(calls[0].body, calls[1].body);
   assert.equal(calls.length, 2);
   assert.equal(calls[0].headers.get("Idempotency-Key"), calls[1].headers.get("Idempotency-Key"));
 });
@@ -201,4 +203,76 @@ test("apiClient preserves structured product validation", async (t) => {
 test("apiClient preserves cancellation without exposing a transport error", async (t) => {
   t.mock.method(globalThis, "fetch", async () => { throw new DOMException("Request aborted.", "AbortError"); });
   await assert.rejects(request("/products"), (error) => error.name === "AbortError");
+});
+
+
+test("checkout serializes every ID and quantity in cart order without product fields", async (t) => {
+  const calls = mockFetch(t, { data: purchase }, 201);
+  await checkoutPurchase({ ...buyer, items: [
+    { product_id: 19, quantity: 1, name: "Cama", unit_price: "21500.00", line_total: "21500.00" },
+    { product_id: 12, quantity: 2, product: { name: "Alimento" }, price: "8500.00" },
+  ], total_amount: "38500.00", email_status: "sent", subtotal: "1.00", tax: "0.00" }, credential, "snapshot-1");
+  assert.deepEqual(JSON.parse(calls[0].body), { ...buyer,
+    items: [{ product_id: 19, quantity: 1 }, { product_id: 12, quantity: 2 }], total_amount: "38500.00" });
+});
+
+test("checkout rejects empty, duplicate and malformed snapshots before fetch", async (t) => {
+  const calls = mockFetch(t);
+  for (const items of [undefined, null, [], Array(1), {}, Array.from({ length: 1001 }, (_, i) => ({ product_id: i + 1, quantity: 1 })),
+    [{ product_id: 12, quantity: 1 }, { product_id: 12, quantity: 2 }]]) {
+    await assert.rejects(checkoutPurchase({ ...buyer, items }, credential, "snapshot-1"), (error) => error.status === 400);
+  }
+  for (const value of [undefined, null, true, "2", 0, -1, 1.5, NaN, Infinity, 2147483648, Number.MAX_SAFE_INTEGER + 1]) {
+    for (const field of ["product_id", "quantity"]) {
+      await assert.rejects(checkoutPurchase({ ...buyer, items: [{ product_id: 12, quantity: 2, [field]: value }] }, credential, "snapshot-1"),
+        (error) => error.status === 400);
+    }
+  }
+  for (const total_amount of [undefined, null, 17000, "", "1", "1.0", "1.000", "01.00", "-1.00", " 1.00", "1.00\n", "₡17000.00", "17,000.00", "100000000.00", "1e2", "NaN"]) {
+    await assert.rejects(checkoutPurchase({ ...buyer, total_amount }, credential, "snapshot-1"), (error) => error.status === 400);
+  }
+  for (const patch of [{ full_name: " " }, { full_name: "a".repeat(201) }, { buyer_email: "invalid" },
+    { buyer_email: "a".repeat(255) }, { shipping_address: "a".repeat(501) }]) {
+    await assert.rejects(checkoutPurchase({ ...buyer, ...patch }, credential, "snapshot-1"), (error) => error.status === 400);
+  }
+  assert.equal(calls.length, 0);
+});
+
+test("snapshot conflict messages survive sanitization and never auto-resubmit", async (t) => {
+  for (const message of ["Checkout cart snapshot does not match the active cart.", "Checkout total does not match the current cart total."]) {
+    const calls = mockFetch(t, { error: { message } }, 409);
+    await assert.rejects(checkoutPurchase(buyer, credential, "snapshot-1"), (error) => error.status === 409 && error.message === message);
+    assert.equal(calls.length, 1);
+    t.mock.restoreAll();
+  }
+});
+
+
+test("shipping address requires plain text and normalizes only surrounding whitespace and line endings", async (t) => {
+  const calls = mockFetch(t, { data: purchase }, 201);
+  for (const shipping_address of [undefined, null, {}, { line1: "Calle 1" }, [], 123, "", " ", "\n\r\n", "a".repeat(501), "Calle\u0000azul"]) {
+    await assert.rejects(checkoutPurchase({ ...buyer, shipping_address }, credential, "address-attempt"),
+      (error) => error.status === 400 && Object.hasOwn(error.details, "shipping_address"));
+  }
+  assert.equal(calls.length, 0);
+  for (const shipping_address of ["a".repeat(500), "Del parque de San José, 200 metros al norte.", "  Edificio azul.\r\nApartamento 3.\rSan José.  "]) {
+    await checkoutPurchase({ ...buyer, shipping_address }, credential, "address-attempt");
+    assert.deepEqual(JSON.parse(calls.at(-1).body), { ...buyer,
+      shipping_address: shipping_address.replace(/\r\n?/g, "\n").trim() });
+  }
+});
+
+
+test("cart and checkout pass cancellation signals without changing bodies or authorization", async (t) => {
+  const calls = mockFetch(t, { data: { cart, ...purchase } }, 201);
+  const controller = new AbortController(), options = { signal: controller.signal };
+  await getCart(credential, options);
+  await addCartItem(4, 2, credential, options);
+  await updateCartItem(7, 3, credential, options);
+  await removeCartItem(7, credential, options);
+  await checkoutPurchase(buyer, credential, "cancel-attempt", options);
+  assert.equal(calls.length, 5);
+  for (const call of calls) { assert.equal(call.signal, controller.signal); checkAuthorization(call); }
+  assert.deepEqual(JSON.parse(calls[4].body), buyer);
+  assert.equal(calls[4].headers.get("Idempotency-Key"), "cancel-attempt");
 });

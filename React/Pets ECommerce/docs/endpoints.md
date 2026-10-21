@@ -271,10 +271,20 @@ Authorization: Bearer <client_token>
 
 Creates a sale from the authenticated client's active cart. The operation validates cart items and stock, creates sale items and invoice, reduces product stock, and marks the cart as `checked_out` in one transaction.
 
-Phase 4 requires buyer/shipping JSON and `Idempotency-Key`. See
+Phase 4 requires buyer JSON with `shipping_address` as one complete-address string
+(required, trimmed, maximum 500 characters, internal line breaks allowed), `items` (only product ID/quantity), canonical
+two-decimal `total_amount`, and `Idempotency-Key`. See
 [checkout contract](checkout.md) for the exact request/response, limits, replay
 rules and status codes. Both a new purchase and matching replay return `201`.
-Unsupported fields return `400`; key reuse with changed buyer details returns `409`.
+Unsupported fields return `400`; submitted cart/total mismatch and key reuse with
+changed normalized request details return `409`. The locked authenticated cart
+and current database prices determine the persisted/returned total. Item order
+alone does not change the fingerprint. Address CRLF/CR normalize to LF before
+fingerprinting/persistence. No separate city, province, postal code, or country
+code is required. Legacy object addresses remain readable in stored purchases.
+This is the implemented contract, which differs from repository instructions
+requiring buyer-only input and a structured address. No API change is included
+in this documentation update.
 `GET /sales/<sale_id>/confirmation` returns the same envelope with `200`, only
 for the owning client (`404` for another owner, `403` for an admin).
 

@@ -1,4 +1,7 @@
+from decimal import Decimal
+
 import pytest
+from flask_jwt_extended import decode_token
 
 from app.extensions import db
 from app.models import Cart, Invoice, Product, Sale, SaleItem
@@ -6,25 +9,44 @@ from app.services.auth_service import ADMIN_ROLE, CLIENT_ROLE
 from tests.conftest import auth_header, create_user, login_user
 
 
-def checkout_payload():
+def checkout_payload(cart=None):
+    if cart is None:
+        cart = db.session.query(Cart).order_by(Cart.id.desc()).first()
+    items = cart.items if cart and cart.items else []
     return {
+        "items": (
+            [{"product_id": item.product_id, "quantity": item.quantity} for item in items]
+            or [{"product_id": 1, "quantity": 2}]
+        ),
+        "total_amount": format(
+            sum((item.product.price * item.quantity for item in items), Decimal("0.00")), ".2f"
+        ),
         "full_name": "Ana Ejemplo",
         "buyer_email": "ana@example.com",
-        "shipping_address": {
-            "line1": "Calle 1",
-            "line2": None,
-            "city": "San José",
-            "province": "San José",
-            "postal_code": "10101",
-            "country": "CR",
-        },
+        "shipping_address": "Calle 1",
     }
 
 
 def _checkout(client, token, key="checkout-1", payload=None):
+    if payload is None:
+        owner = int(decode_token(token)["sub"])
+        cart = db.session.query(Cart).filter_by(user_id=owner).order_by(Cart.id.desc()).first()
+        payload = checkout_payload(cart)
+        existing = db.session.query(Sale).filter_by(user_id=owner, idempotency_key=key).first()
+        if existing:
+            payload = {
+                "full_name": existing.full_name,
+                "buyer_email": existing.buyer_email,
+                "shipping_address": existing.shipping_address,
+                "items": [
+                    {"product_id": item.product_id, "quantity": item.quantity}
+                    for item in existing.items
+                ],
+                "total_amount": format(existing.total_amount, ".2f"),
+            }
     return client.post(
         "/sales/checkout",
-        json=checkout_payload() if payload is None else payload,
+        json=payload,
         headers={**auth_header(token), "Idempotency-Key": key},
     )
 
@@ -300,13 +322,19 @@ def test_missing_buyer_fields(client, field):
     assert _checkout(client, token, payload=payload).status_code == 400
 
 
-@pytest.mark.parametrize("field", ["line1", "city", "province", "postal_code", "country"])
-@pytest.mark.parametrize("value", [None, " ", 123, "x" * 201])
-def test_invalid_address_fields(client, field, value):
+@pytest.mark.parametrize(
+    "value", [None, {}, {"line1": "Calle 1"}, [], 123, "", " ", "\n\r\n", "x" * 501]
+)
+def test_invalid_address_fields(client, value):
     token = _client_token(client)
+    product = _create_product(price="12.50")
+    _add_to_cart(client, token, product)
     payload = checkout_payload()
-    payload["shipping_address"][field] = value
-    assert _checkout(client, token, payload=payload).status_code == 400
+    payload["shipping_address"] = value
+    response = _checkout(client, token, payload=payload)
+    assert response.status_code == 400
+    assert "shipping_address" in response.get_json()["error"]["details"]
+    assert_checkout_unchanged(product)
 
 
 @pytest.mark.parametrize(
@@ -328,7 +356,7 @@ def test_rejects_spoofed_fields(client, field):
     payload[field] = "spoofed"
     assert _checkout(client, token, payload=payload).status_code == 400
     payload = checkout_payload()
-    payload["shipping_address"][field] = "spoofed"
+    payload["shipping_address"] = {field: "spoofed"}
     assert _checkout(client, token, payload=payload).status_code == 400
 
 
@@ -526,3 +554,339 @@ def test_database_rejects_duplicate_active_cart_and_checkout_key(client):
         db.session.flush()
     db.session.rollback()
     assert db.session.query(Sale).count() == 1
+
+
+def assert_checkout_unchanged(product, stock=5, quantity=2):
+    assert db.session.query(Sale).count() == 0
+    assert db.session.query(SaleItem).count() == 0
+    assert db.session.query(Invoice).count() == 0
+    assert db.session.get(Product, product.id).stock == stock
+    assert db.session.get(Product, product.id).price == Decimal("12.50")
+    cart = db.session.query(Cart).one()
+    assert cart.status == "active"
+    assert [(item.product_id, item.quantity) for item in cart.items] == [(product.id, quantity)]
+
+
+@pytest.mark.parametrize("case", ["missing", "extra", "quantity"])
+def test_submitted_items_must_match_locked_cart_without_mutations(client, app, monkeypatch, case):
+    token = _client_token(client)
+    product = _create_product(price="12.50")
+    _add_to_cart(client, token, product)
+    other = _create_product(price="5.00")
+    payload = checkout_payload()
+    if case == "missing":
+        payload["items"] = [{"product_id": other.id, "quantity": 1}]
+    elif case == "extra":
+        payload["items"].append({"product_id": other.id, "quantity": 1})
+    else:
+        payload["items"][0]["quantity"] = 1
+    monkeypatch.setattr(
+        app.extensions["email_service"],
+        "deliver",
+        lambda *args: pytest.fail("No email on conflict"),
+    )
+    response = _checkout(client, token, payload=payload)
+    assert response.status_code == 409
+    assert response.get_json() == {
+        "error": {"message": "Checkout cart snapshot does not match the active cart."}
+    }
+    assert_checkout_unchanged(product)
+    assert other.stock == 5
+
+
+@pytest.mark.parametrize(
+    "items",
+    [
+        None,
+        [],
+        {},
+        [None],
+        [{"product_id": 1}],
+        [{"product_id": 1, "quantity": 2}, {"product_id": 1, "quantity": 2}],
+        [{"product_id": 1, "quantity": 2, "unit_price": "0.01"}],
+        [{"product_id": 1, "quantity": 2, "product": {"id": 1}}],
+        [{"product_id": i + 1, "quantity": 1} for i in range(1001)],
+    ],
+)
+def test_invalid_item_structure_never_mutates_checkout(client, items):
+    token = _client_token(client)
+    product = _create_product(price="12.50")
+    _add_to_cart(client, token, product)
+    payload = checkout_payload()
+    payload["items"] = items
+    response = _checkout(client, token, payload=payload)
+    assert response.status_code == 400
+    assert "items" in response.get_json()["error"]["details"]
+    assert_checkout_unchanged(product)
+
+
+@pytest.mark.parametrize("field", ["product_id", "quantity"])
+@pytest.mark.parametrize(
+    "value", [None, True, False, 0, -1, 1.5, "2", 2147483648, 9007199254740992]
+)
+def test_item_ids_and_quantities_are_strict_positive_integers(client, field, value):
+    token = _client_token(client)
+    product = _create_product(price="12.50")
+    _add_to_cart(client, token, product)
+    payload = checkout_payload()
+    payload["items"][0][field] = value
+    assert _checkout(client, token, payload=payload).status_code == 400
+    assert_checkout_unchanged(product)
+
+
+@pytest.mark.parametrize(
+    "value,status",
+    [
+        ("24.99", 409),
+        ("25.01", 409),
+        ("0.00", 409),
+        (None, 400),
+        (25, 400),
+        (25.0, 400),
+        ("25", 400),
+        ("25.0", 400),
+        ("025.00", 400),
+        ("25.000", 400),
+        ("-1.00", 400),
+        ("25.00 ", 400),
+        ("25.00\n", 400),
+        ("₡25.00", 400),
+        ("2,500.00", 400),
+        ("100000000.00", 400),
+        ("NaN", 400),
+        ("Infinity", 400),
+        ("2.5e1", 400),
+    ],
+)
+def test_submitted_total_cannot_override_calculation(client, app, monkeypatch, value, status):
+    token = _client_token(client)
+    product = _create_product(price="12.50")
+    _add_to_cart(client, token, product)
+    payload = checkout_payload()
+    payload["total_amount"] = value
+    monkeypatch.setattr(
+        app.extensions["email_service"],
+        "deliver",
+        lambda *args: pytest.fail("No email on rejection"),
+    )
+    response = _checkout(client, token, payload=payload)
+    assert response.status_code == status
+    if status == 409:
+        assert response.get_json() == {
+            "error": {"message": "Checkout total does not match the current cart total."}
+        }
+    else:
+        assert "total_amount" in response.get_json()["error"]["details"]
+    assert_checkout_unchanged(product)
+
+
+@pytest.mark.parametrize("field", ["items", "total_amount"])
+def test_snapshot_fields_are_required(client, field):
+    token = _client_token(client)
+    product = _create_product(price="12.50")
+    _add_to_cart(client, token, product)
+    payload = checkout_payload()
+    del payload[field]
+    assert _checkout(client, token, payload=payload).status_code == 400
+    assert_checkout_unchanged(product)
+
+
+def test_missing_product_from_multi_item_snapshot_is_conflict(client):
+    token = _client_token(client)
+    first = _create_product(price="12.50")
+    second = _create_product(price="5.00")
+    _add_to_cart(client, token, first)
+    _add_to_cart(client, token, second, 1)
+    payload = checkout_payload()
+    payload["items"].pop()
+    assert _checkout(client, token, payload=payload).status_code == 409
+    assert db.session.query(Sale).count() == db.session.query(Invoice).count() == 0
+    assert first.stock == second.stock == 5
+    assert db.session.query(Cart).one().status == "active"
+    assert len(db.session.query(Cart).one().items) == 2
+
+
+def test_stale_price_requires_review_then_new_attempt_can_succeed(client):
+    token = _client_token(client)
+    product = _create_product(price="12.50")
+    _add_to_cart(client, token, product)
+    payload = checkout_payload()
+    product.price = Decimal("13.00")
+    db.session.commit()
+    assert _checkout(client, token, payload=payload).status_code == 409
+    assert db.session.query(Sale).count() == db.session.query(Invoice).count() == 0
+    assert product.stock == 5 and db.session.query(Cart).one().status == "active"
+    payload["total_amount"] = "26.00"
+    result = _checkout(client, token, key="reviewed-attempt", payload=payload)
+    assert result.status_code == 201
+    data = result.get_json()["data"]
+    assert data["sale"]["total_amount"] == data["invoice"]["total_amount"] == "26.00"
+    assert data["sale"]["items"][0]["unit_price"] == "13.00"
+
+
+def test_semantic_item_order_and_normalized_buyer_replay_without_email(client, app, monkeypatch):
+    token = _client_token(client)
+    first = _create_product(price="12.50")
+    second = _create_product(price="5.00")
+    _add_to_cart(client, token, first)
+    _add_to_cart(client, token, second, 1)
+    delivered = []
+    monkeypatch.setattr(
+        app.extensions["email_service"], "deliver", lambda sale_id: delivered.append(sale_id)
+    )
+    payload = checkout_payload()
+    original = _checkout(client, token, payload=payload)
+    assert original.status_code == 201
+    payload["items"].reverse()
+    payload["full_name"] = "  Ana Ejemplo  "
+    payload["shipping_address"] = "  Calle 1  "
+    assert _checkout(client, token, payload=payload).get_json() == original.get_json()
+    assert len(delivered) == 1
+    assert db.session.query(Sale).count() == db.session.query(Invoice).count() == 1
+    assert first.stock == 3 and second.stock == 4
+    assert db.session.query(Cart).one().status == "checked_out"
+
+
+@pytest.mark.parametrize("change", ["quantity", "total", "buyer", "address", "product"])
+def test_key_fingerprint_covers_complete_request(client, change):
+    token = _client_token(client)
+    product = _create_product(price="12.50")
+    _add_to_cart(client, token, product)
+    payload = checkout_payload()
+    assert _checkout(client, token, payload=payload).status_code == 201
+    if change == "quantity":
+        payload["items"][0]["quantity"] = 1
+    elif change == "total":
+        payload["total_amount"] = "24.99"
+    elif change == "buyer":
+        payload["buyer_email"] = "otra@example.com"
+    elif change == "address":
+        payload["shipping_address"] = "Calle 2"
+    else:
+        payload["items"][0]["product_id"] += 1
+    response = _checkout(client, token, payload=payload)
+    assert response.status_code == 409
+    assert (
+        response.get_json()["error"]["message"]
+        == "Idempotency key was already used with different details."
+    )
+    assert db.session.query(Sale).count() == db.session.query(Invoice).count() == 1
+    assert product.stock == 3
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "user_id",
+        "price",
+        "unit_price",
+        "line_total",
+        "subtotal",
+        "tax",
+        "invoice_number",
+        "status",
+        "email_status",
+    ],
+)
+def test_forbidden_overrides_cannot_mutate_checkout(client, field):
+    token = _client_token(client)
+    product = _create_product(price="12.50")
+    _add_to_cart(client, token, product)
+    payload = checkout_payload()
+    payload[field] = 1
+    assert _checkout(client, token, payload=payload).status_code == 400
+    assert_checkout_unchanged(product)
+
+
+def test_submitted_other_owners_cart_cannot_be_purchased(client):
+    owner = _client_token(client)
+    other = _client_token(client, "other@example.com")
+    first = _create_product(price="12.50")
+    second = _create_product(price="12.50")
+    _add_to_cart(client, owner, first)
+    _add_to_cart(client, other, second)
+    payload = checkout_payload()
+    assert payload["items"][0]["product_id"] == second.id
+    assert _checkout(client, owner, payload=payload).status_code == 409
+    assert db.session.query(Sale).count() == db.session.query(Invoice).count() == 0
+    assert first.stock == second.stock == 5
+    assert all(cart.status == "active" for cart in db.session.query(Cart).all())
+    assert sorted(
+        item.product_id for cart in db.session.query(Cart).all() for item in cart.items
+    ) == [first.id, second.id]
+
+
+@pytest.mark.parametrize(
+    "address",
+    [
+        "Calle 1",
+        "Del parque central de San José, 200 metros al norte, edificio azul.",
+        "Apartamento 3, portón café; preguntar por Ana.",
+        "Edificio azul.\nApartamento 3.",
+        "a" * 500,
+    ],
+)
+def test_text_address_snapshot_confirmation_and_invoice(client, address):
+    token = _client_token(client)
+    product = _create_product(price="12.50")
+    _add_to_cart(client, token, product)
+    payload = checkout_payload()
+    payload["shipping_address"] = "  " + address + "  "
+    response = _checkout(client, token, payload=payload)
+    assert response.status_code == 201
+    data = response.get_json()["data"]
+    sale = db.session.query(Sale).one()
+    assert sale.shipping_address == address
+    assert (
+        data["sale"]["shipping_address"] == data["invoice"]["sale"]["shipping_address"] == address
+    )
+    assert data["sale"]["total_amount"] == data["invoice"]["total_amount"] == "25.00"
+    assert db.session.query(Sale).count() == db.session.query(Invoice).count() == 1
+    assert product.stock == 3
+    assert db.session.query(Cart).one().status == "checked_out"
+    confirmation = client.get(f"/sales/{sale.id}/confirmation", headers=auth_header(token))
+    assert confirmation.get_json() == response.get_json()
+    assert _checkout(client, token, payload=payload).get_json() == response.get_json()
+    payload["shipping_address"] = address + " Otra puerta."
+    if len(payload["shipping_address"]) <= 500:
+        assert _checkout(client, token, payload=payload).status_code == 409
+    assert product.stock == 3
+
+
+def test_address_line_endings_have_one_fingerprint_and_preserve_internal_spaces(client):
+    token = _client_token(client)
+    product = _create_product(price="12.50")
+    _add_to_cart(client, token, product)
+    payload = checkout_payload()
+    payload["shipping_address"] = "  Edificio azul.\r\nApartamento  3.\rSan José.  "
+    response = _checkout(client, token, payload=payload)
+    assert response.status_code == 201
+    expected = "Edificio azul.\nApartamento  3.\nSan José."
+    assert db.session.query(Sale).one().shipping_address == expected
+    payload["shipping_address"] = expected
+    assert _checkout(client, token, payload=payload).get_json() == response.get_json()
+    assert db.session.query(Sale).count() == db.session.query(Invoice).count() == 1
+    assert product.stock == 3
+
+
+def test_legacy_address_snapshots_remain_readable_without_rewriting(client):
+    token = _client_token(client)
+    product = _create_product(price="12.50")
+    _add_to_cart(client, token, product)
+    _checkout(client, token)
+    sale = db.session.query(Sale).one()
+    legacy = {
+        "line1": "Calle 1",
+        "line2": None,
+        "city": "San José",
+        "province": "San José",
+        "postal_code": "10101",
+        "country": "CR",
+    }
+    sale.shipping_address = legacy
+    db.session.commit()
+    response = client.get(f"/sales/{sale.id}/confirmation", headers=auth_header(token))
+    assert response.status_code == 200
+    assert response.get_json()["data"]["sale"]["shipping_address"] == legacy
+    assert response.get_json()["data"]["invoice"]["sale"]["shipping_address"] == legacy
+    assert sale.shipping_address == legacy

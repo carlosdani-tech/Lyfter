@@ -187,6 +187,9 @@ products or manually delete keys without authorization. Redis errors are
 swallowed by cache helpers: reads fall back to SQL, writes/invalidation are
 best effort. Failed invalidation can leave stale public data until TTL expiry;
 checkout revalidates stock and price from locked SQL rows, never Redis.
+Consequently, a stale cached catalog price can differ from the cart total.
+Checkout compares the submitted cart/total snapshot with current SQL state and
+returns 409 on mismatch; it never uses Redis or the submitted amount to set prices.
 
 ### Verify product list cache
 

@@ -1,7 +1,6 @@
-﻿import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import useAuthContext from "../../hooks/useAuthContext";
 import useCartContext from "../../hooks/useCartContext";
@@ -9,8 +8,9 @@ import useCartContext from "../../hooks/useCartContext";
 const LOGOUT_CONFIRMATION_TOAST_ID = "logout-confirmation";
 
 export default function Header() {
-  const { currentUser, isAdmin, isClient, logout } = useAuthContext();
+  const { currentUser, isAuthenticated, isAdmin, isClient, authLoading, logout } = useAuthContext();
   const { itemCount, loading: cartLoading } = useCartContext();
+  const cartCount = isAuthenticated && isClient && !authLoading ? itemCount : 0;
   const navigate = useNavigate();
   const location = useLocation();
   const logoutInProgressRef = useRef(false);
@@ -47,7 +47,11 @@ export default function Header() {
         <NavLink to="/" end>Inicio</NavLink>
         <NavLink to="/productos">Productos</NavLink>
         <NavLink to="/contacto">Contacto</NavLink>
-        {isClient && <NavLink to="/carrito" aria-busy={cartLoading}>Carrito ({itemCount})</NavLink>}
+        {(!isAuthenticated || isClient) && <NavLink to="/carrito"
+          aria-busy={Boolean(isAuthenticated && isClient && !authLoading && cartLoading)}
+          aria-label={`Carrito, ${cartCount} ${cartCount === 1 ? "producto" : "productos"} en el carrito`}>
+          Carrito ({cartCount})
+        </NavLink>}
         {(!currentUser || isAdmin) && <NavLink to="/admin"
           className={({ isActive }) => `btn-administracion${isActive ? " active" : ""}`}>
           Administración

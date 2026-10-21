@@ -66,10 +66,10 @@ The API layer is centralized under `src/api/`:
 - `authApi.js`: login requests.
 - `productsApi.js`: public catalog reads and protected product mutations.
 - `cartApi.js`: authenticated authoritative cart reads/add/update/remove.
-- `salesApi.js`: allowlisted buyer/shipping checkout with `Idempotency-Key`.
+- `salesApi.js`: allowlisted buyer/shipping/items/total checkout with `Idempotency-Key`.
 
 CartProvider uses the cart module; CheckoutProvider owns the in-memory purchase
-attempt and structured form. See [checkout UI](docs/checkout-ui.md) for the state
+attempt and buyer form. See [checkout UI](docs/checkout-ui.md) for the state
 machine, safe retries, confirmation, layout, and validation limits. See the
 [exact API boundary contracts](docs/cart-checkout-api.md) for request bodies,
 response shapes, safe errors, and caller-owned idempotency-key reuse.
@@ -85,10 +85,9 @@ read that state or coordinate focused product workflows:
 
 - `AuthProvider` / `AuthContext`: in-memory user, token, login errors, and
   session invalidation; guarded `useAuthContext` reads the shared session.
-  `useAuth` and `useSession` remain compatibility aliases of the same hook.
-- `CartProvider` / `CartContext`: one immutable backend cart and mutation queue
+- `CartProvider` / `CartContext`: provider-local reducer state for one backend cart and a private mutation queue
   per active client session, read through guarded `useCartContext`.
-- `CheckoutProvider` / `CheckoutContext`: structured draft, request locking,
+- `CheckoutProvider` / `CheckoutContext`: provider-local draft/attempt reducer, request locking,
   one in-memory idempotency attempt, safe retry, and verified success navigation.
 - `useProducts`: backend product collection, loading, and refresh.
 - `useProductForm`: shared create/edit form state and validation.
@@ -214,7 +213,7 @@ recovery, search evidence, the role/state matrix, and verification limits.
 | `/admin` | Admin | Product creation, list, edit/deactivation actions |
 | `/admin/editar/:id` | Admin | Fetch product by ID and initialize edit form |
 | `/carrito` | Client | Accessible responsive cart with authoritative quantities/totals |
-| `/checkout` | Client | Structured buyer form, server summary, idempotent purchase |
+| `/checkout` | Client | Buyer form with one text address, server summary, idempotent purchase |
 | `/compra/:saleId` | Client owner | Authorized sale/invoice snapshot and truthful email status |
 | `*` | Public | Spanish `NotFoundPage` |
 
@@ -335,8 +334,8 @@ money display, and cart preservation when checkout fails.
 ### Manual browser matrix
 
 Run with the backend available and existing client/admin accounts. The browser
-matrix remains unverified in this implementation session because browser
-automation reported no connected browser surfaces.
+matrix has not been executed during this documentation update. Earlier browser
+availability and development-server checks are historical evidence only.
 
 | Scenario | Expected result |
 | --- | --- |
@@ -351,7 +350,7 @@ automation reported no connected browser surfaces.
 | Client entry/Back/Forward to either admin route | Spanish forbidden state; no admin content |
 | Admin entry to client purchase routes | Spanish forbidden state |
 | Client on cart route | Items, controls, thumbnails, exact CRC prices/totals; empty/invalid carts cannot follow the checkout link |
-| Client on checkout/confirmation routes | Structured buyer form and server summary; verified owner-only confirmation with truthful email status |
+| Client on checkout/confirmation routes | Buyer form with one text address and server summary; verified owner-only confirmation with truthful email status |
 | Logged-out catalog/detail add | Login with fixed Spanish explanation and safe return destination; no anonymous cart |
 | Admin catalog/detail add | Spanish denial; no cart request |
 | Client catalog/detail add | Flask cart updates and header badge counts quantities |

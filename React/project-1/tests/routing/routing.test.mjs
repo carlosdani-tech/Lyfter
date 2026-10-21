@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { after, test } from "node:test";
 import React from "react";
 import { renderToString } from "react-dom/server";
-import { createMemoryRouter, MemoryRouter, Route, RouterProvider, Routes } from "react-router-dom";
+import { createMemoryRouter, MemoryRouter, Navigate, Route, RouterProvider, Routes } from "react-router-dom";
 import { createServer } from "vite";
 import { parseRouteId, safeDestination } from "../../src/utils/routing.js";
 
@@ -14,8 +14,6 @@ const { default: ProductRoute } = await server.ssrLoadModule("/src/components/ro
 const { default: App } = await server.ssrLoadModule("/src/App.jsx");
 const { default: AuthProvider } = await server.ssrLoadModule("/src/context/AuthProvider.jsx");
 const { default: useAuthContext } = await server.ssrLoadModule("/src/hooks/useAuthContext.js");
-const { default: useAuth } = await server.ssrLoadModule("/src/hooks/useAuth.js");
-const { default: useSession } = await server.ssrLoadModule("/src/hooks/useSession.js");
 const { default: CartProvider } = await server.ssrLoadModule("/src/context/CartProvider.jsx");
 const { default: CheckoutProvider } = await server.ssrLoadModule("/src/context/CheckoutProvider.jsx");
 const { RenderBoundary } = await server.ssrLoadModule("/src/components/routing/RouteErrorBoundary.jsx");
@@ -170,11 +168,9 @@ test("purchase routes render only for clients and never flash success or admin c
   assert.match(render(React.createElement(App), "/compra/10", client), /Consultando tu compra/);
 });
 
-test("AuthProvider exposes the complete contract and both legacy hooks share it", () => {
+test("useAuthContext exposes the complete AuthProvider contract", () => {
   function Probe() {
     const auth = useAuthContext();
-    assert.equal(auth, useAuth());
-    assert.equal(auth, useSession());
     for (const field of ["currentUser", "accessToken", "isAuthenticated", "isAdmin", "isClient", "authLoading", "authError"]) {
       assert.equal(Object.hasOwn(auth, field), true);
     }
@@ -190,4 +186,50 @@ test("AuthProvider exposes the complete contract and both legacy hooks share it"
 test("useAuthContext fails clearly outside its provider", () => {
   function Probe() { useAuthContext(); return null; }
   assert.throws(() => renderToString(React.createElement(Probe)), /useAuthContext requires AuthProvider/);
+});
+
+test("global header exposes cart on every applicable guest/client route and hides it for admins", (t) => {
+  const request = t.mock.method(globalThis, "fetch", async () => { throw new Error("Rendering the header must not fetch protected cart data"); });
+  const paths = ["/", "/productos", "/productos/4", "/contacto", "/login", "/carrito", "/checkout", "/compra/10", "/missing"];
+  for (const session of [{}, { currentUser: { id: 2, role: "client" }, accessToken: "test-only-credential" }]) {
+    for (const path of paths) {
+      const html = render(React.createElement(App), path, session);
+      const header = html.match(/<header[^>]*>[\s\S]*?<\/header>/)?.[0];
+      assert.ok(header, path);
+      assert.match(header, /href="\/carrito"/);
+      assert.match(header, /aria-label="Carrito, 0 productos en el carrito"/);
+    }
+  }
+  const admin = { currentUser: { id: 1, role: "admin" }, accessToken: "test-only-credential" };
+  for (const path of [...paths, "/admin", "/admin/editar/4"]) {
+    const html = render(React.createElement(App), path, admin);
+    const header = html.match(/<header[^>]*>[\s\S]*?<\/header>/)?.[0];
+    assert.ok(header, path);
+    assert.doesNotMatch(header, /href="\/carrito"|productos en el carrito/);
+  }
+  assert.equal(request.mock.callCount(), 0);
+});
+
+test("guest cart entry reaches the existing login guard with a safe return destination", () => {
+  const header = render(React.createElement(Header));
+  const destination = header.match(/href="(\/carrito)"/)?.[1];
+  assert.equal(destination, "/carrito");
+  let redirect;
+  function Probe() { redirect = RequireAuth(); return null; }
+  render(React.createElement(Probe), destination);
+  assert.equal(redirect.type, Navigate);
+  assert.equal(redirect.props.to, "/login");
+  assert.equal(redirect.props.replace, true);
+  assert.deepEqual(redirect.props.state, { from: "/carrito" });
+  assert.equal(safeDestination(redirect.props.state.from), "/carrito");
+  for (const unsafe of ["https://external.example/carrito", "//external.example/carrito", "/\\external.example"]) {
+    assert.equal(safeDestination(unsafe), null);
+  }
+  const admin = render(React.createElement(App), destination,
+    { currentUser: { id: 1, role: "admin" }, accessToken: "test-only-credential" });
+  assert.match(admin, /Acceso restringido/);
+  assert.doesNotMatch(admin, /Carrito de compras/);
+  const client = render(React.createElement(App), destination,
+    { currentUser: { id: 2, role: "client" }, accessToken: "test-only-credential" });
+  assert.match(client, /Carrito de compras/);
 });

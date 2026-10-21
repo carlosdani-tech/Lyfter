@@ -140,6 +140,12 @@ bounce processing, or provider status polling in this implementation.
 
 ## Validation
 
+Commands below are repeatable procedures. Current executed results are recorded
+in [testing](testing.md#documentation-validation-record); they use injected or
+mocked transports. No SMTP configuration, acceptance, or inbox delivery was
+verified during this documentation update. Keep `EMAIL_ENABLED=false` until
+an approved isolated SMTP check establishes the intended configuration.
+
 ```powershell
 .venv\Scripts\python -m pytest tests/test_email.py tests/test_sales_invoices.py
 .venv\Scripts\python -m pytest
@@ -157,3 +163,12 @@ permissions, in-flight fencing, programming/database failures, and constraints.
 SQLite proves application behavior and conditional claims; simultaneous
 PostgreSQL contention and actual SMTP/provider behavior still require an
 approved isolated integration environment. No live migration is run by tests.
+
+
+Shipping display uses `format_shipping_address` in `email_service.py`. New
+complete-address text snapshots retain internal line breaks and Spanish text.
+Legacy object snapshots render only known address fields, skipping null/blank
+or malformed values without printing Python object representations. The helper
+does not mutate stored data. Checkout accepts text only; no city, province,
+postal code, or country-code input is required. SMTP, claims, post-commit send,
+and retry policies remain unchanged.

@@ -14,8 +14,8 @@ function verifiedProduct(product, expectedId = null) {
   return product;
 }
 
-export async function getProducts() {
-  const data = await request("/products");
+export async function getProducts(options = {}) {
+  const data = await request("/products", options);
   if (!Array.isArray(data?.products)) throw new ApiError("The API returned an invalid product list.", 502);
   return data.products.map((product) => verifiedProduct(product));
 }

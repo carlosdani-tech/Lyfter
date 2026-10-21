@@ -3,8 +3,10 @@
 These modules implement the existing Flask routes and envelopes. Verified
 sources are `Pets ECommerce/app/routes/cart.py`, `routes/sales.py`,
 `schemas/cart_schema.py`, `schemas/sale_schema.py`, the cart/sale service
-serializers, and the backend endpoint/checkout docs. No backend contract is
-changed. See the [backend checkout contract](../../Pets%20ECommerce/docs/checkout.md).
+serializers, and the backend endpoint/checkout docs. The implementation extends
+checkout with a cart snapshot and displayed total; backend calculation and
+ownership remain authoritative. See the
+[backend checkout contract](../../Pets%20ECommerce/docs/checkout.md).
 
 ## Requests and return values
 
@@ -19,7 +21,7 @@ included in URLs, bodies, errors, or logs. No request is automatically retried.
 | `addCartItem(productId, quantity, token)` | `POST /cart/items` | `{product_id, quantity}` | `201` | `data.cart` |
 | `updateCartItem(itemId, quantity, token)` | `PUT /cart/items/:itemId` | `{quantity}` | `200` | `data.cart` |
 | `removeCartItem(itemId, token)` | `DELETE /cart/items/:itemId` | None | `200` | `data.cart` |
-| `checkoutPurchase(buyerData, token, optionalIdempotencyKey)` | `POST /sales/checkout` | Allowlisted buyer/address object below | `201`, including matching replay | `{sale: data.sale, invoice: data.invoice, idempotencyKey}` |
+| `checkoutPurchase(checkoutData, token, optionalIdempotencyKey)` | `POST /sales/checkout` | Allowlisted buyer/address/items/total object below | `201`, including matching replay | `{sale: data.sale, invoice: data.invoice, idempotencyKey}` |
 
 `GET /cart` may create an empty active cart on the backend. Adding an existing
 product **increments** its quantity; updating an item **replaces** its quantity.
@@ -38,24 +40,34 @@ Checkout sends exactly:
 {
   "full_name": "Ana Ejemplo",
   "buyer_email": "ana@example.com",
-  "shipping_address": {
-    "line1": "Calle 1",
-    "line2": null,
-    "city": "San José",
-    "province": "San José",
-    "postal_code": "10101",
-    "country": "CR"
-  }
+  "shipping_address": "Del parque central de San José, 200 metros al norte, edificio azul, San José, Costa Rica.",
+  "items": [{ "product_id": 1, "quantity": 2 }],
+  "total_amount": "25.00"
 }
 ```
 
-Only these top-level and address fields are copied. Extra source properties,
-including prices, totals, user/role identifiers, item overrides, invoice
+Only the documented top-level fields are copied. Extra source properties,
+including prices, user/role identifiers, product display fields, invoice
 numbers, statuses, and `toJSON` hooks, are not sent. Unlike a direct backend
 request (which rejects unsupported fields), this boundary strips extras.
-Required fields must be strings; `line2` may be omitted/null and is sent as
-null. Backend validation retains authority over nonblank values, lengths,
-email syntax, country normalization, stock, roles, ownership, and totals.
+Buyer strings retain existing name/email checks. `shipping_address` is a required
+nonblank string of at most 500 characters. One textarea accepts the complete
+natural address, without separate city/province/postal/country inputs. CRLF/CR
+line endings normalize to LF and surrounding whitespace is trimmed; internal
+spaces, accents, punctuation, and newlines are preserved. No components or
+country codes are inferred. Objects and non-string addresses fail locally and
+on the backend. Address errors use only the `shipping_address` field key.
+`checkoutValidation.js` is shared by the API boundary and checkout session.
+Items must contain positive integer product IDs/quantities in `1..2147483647`,
+with 1-1000 entries and no duplicate products. Each serialized item has exactly
+those two fields, preserving backend cart order. `total_amount` is an unchanged
+canonical string in `0.00..99999999.99` with exactly two decimal places.
+The caller uses CartContext's `items` and `cart.total`, the same raw total used
+for display formatting; no localized text, floating-point calculation, static
+JSON, or second cart store is involved. Only the attempt snapshot is retained.
+Backend validation, locking, stock, roles, ownership, and pricing remain final.
+Cart/total mismatches return controlled `409` errors before purchase mutations;
+the server-calculated total is the persisted and returned total.
 
 The checkout HTTP envelope is `{data: {sale: {...}, invoice: {...}}}`. Returned
 sale/invoice objects retain the backend serializer fields unchanged:
@@ -73,8 +85,9 @@ checkout attempt in this layer.
 
 ## Local validation
 
-IDs and quantities accept positive integer numbers or canonical decimal
-strings such as `"12"`. They are normalized to numbers and must fit the
+Cart mutation IDs and quantities accept positive integer numbers or canonical
+decimal strings such as `"12"`, normalized to numbers. Checkout items require
+JSON integer numbers. Both must fit the
 backend's PostgreSQL `INTEGER` range, `1..2147483647`. Booleans, objects,
 fractions, non-finite numbers, whitespace, leading zeroes, numeric suffixes,
 and scientific-notation strings are rejected locally with `ApiError`, status
@@ -102,8 +115,9 @@ prepared do not have an attempt key.
 
 CheckoutProvider generates and retains an explicit key **before** submission
 and passes it on retries/double-clicks for that attempt. Uncertain/conflict
-retries reuse the same buyer details. A matching replay returns the existing purchase
-with `201`; changed normalized buyer/address details with the same key return
+retries reuse the same frozen buyer/address/items/total body. A matching replay
+returns the existing purchase with `201`; changed normalized buyer/address/items/total
+details with the same key return
 `409`. A new intended purchase needs a new key. Calling the function twice
 without a key generates two distinct attempt keys, so callers must not use
 that pattern for retries or double-click protection.
@@ -127,7 +141,7 @@ UI consumers map them to fixed Spanish feedback rather than render raw API text.
 | `422` | Backend JWT malformed-token response retained for auth invalidation |
 | `403` | Non-client role or cart-item ownership denial |
 | `404` | Missing/inactive product or absent/non-active cart item |
-| `409` | Checkout key reused with different normalized buyer/address details |
+| `409` | Cart/total snapshot mismatch or key reused with different normalized request details |
 | `5xx` | Backend failure with generic message and no internal details; checkout can return `503` |
 | `502` | Locally detected malformed/non-JSON success or invalid cart/checkout response shape |
 
@@ -158,3 +172,10 @@ purchase. No migration, dependency installation, or live data change is part
 of this work. Backend docs identify migration files requiring deployment review;
 no live applied revision is established here. PostgreSQL concurrency checks remain pending; deployment readiness is not
 established by frontend lint/build or mocked transport tests.
+
+Snapshot conflict recovery preserves form fields, closes the known failed attempt,
+refreshes CartContext after releasing its request lock, and requires explicit
+confirmation with a new key. Failed refresh blocks submission. An idempotency
+conflict remains frozen for safe same-attempt replay. Item order is ignored in
+the backend fingerprint through product-ID sorting. Neither path retries POST
+automatically. No client unit price, line total, user ID, invoice, or status is sent.

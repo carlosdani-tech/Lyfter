@@ -1,32 +1,7 @@
 import { ApiError } from "./apiClient";
 import { commerceRequest, positiveInteger, requireToken, validationError } from "./commerceApiUtils";
+import { checkoutBody } from "./checkoutValidation.js";
 import { purchaseSummary } from "../utils/purchase";
-
-const ADDRESS_FIELDS = ["line1", "line2", "city", "province", "postal_code", "country"];
-
-function checkoutBody(buyerData) {
-  if (!buyerData || typeof buyerData !== "object" || Array.isArray(buyerData)) {
-    throw validationError("body", "A JSON object is required.");
-  }
-  const address = buyerData.shipping_address;
-  if (!address || typeof address !== "object" || Array.isArray(address)) {
-    throw validationError("shipping_address", "A shipping address object is required.");
-  }
-  const body = {};
-  for (const field of ["full_name", "buyer_email"]) {
-    if (typeof buyerData[field] !== "string") throw validationError(field, "Must be a string.");
-    body[field] = buyerData[field];
-  }
-  body.shipping_address = {};
-  for (const field of ADDRESS_FIELDS) {
-    const value = address[field];
-    if (field === "line2" && value == null) body.shipping_address[field] = null;
-    else if (typeof value !== "string") throw validationError(`shipping_address.${field}`, "Must be a string.");
-    else body.shipping_address[field] = value;
-  }
-  // Explicit field copying excludes ownership, totals, items, statuses, and toJSON hooks.
-  return body;
-}
 
 function checkoutKey(optionalKey) {
   const key = optionalKey === undefined ? globalThis.crypto?.randomUUID?.() : optionalKey;
@@ -36,13 +11,13 @@ function checkoutKey(optionalKey) {
   return key;
 }
 
-export async function checkoutPurchase(buyerData, token, optionalIdempotencyKey) {
-  const body = checkoutBody(buyerData);
+export async function checkoutPurchase(checkoutData, token, optionalIdempotencyKey, { signal } = {}) {
+  const body = checkoutBody(checkoutData, validationError);
   const accessToken = requireToken(token);
   const idempotencyKey = checkoutKey(optionalIdempotencyKey);
   try {
     const data = await commerceRequest("/sales/checkout", {
-      method: "POST", token: accessToken,
+      method: "POST", token: accessToken, signal,
       headers: { "Idempotency-Key": idempotencyKey }, body,
     });
     if (!data?.sale || !data.invoice || typeof data.sale !== "object" ||

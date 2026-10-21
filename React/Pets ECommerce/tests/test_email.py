@@ -97,7 +97,7 @@ def test_successful_delivery_contents_and_no_resend_after_sent(client, app):
         "Pedido: 1\nFactura: INV-000001\n\nProductos:\n"
         "Alimento | Cantidad: 2 | Precio unitario: 12.50 | Subtotal: 25.00\n\n"
         "Subtotal: 25.00\nImpuestos: 0.00\nTotal: 25.00\n\nDirección de envío:\n"
-        "Calle 1\nSan José\nSan José\n10101\nCR\n\n"
+        "Calle 1\n\n"
         "Conserva esta confirmación como referencia de tu compra.\n"
     )
     assert _checkout(client, token).get_json() == response.get_json()
@@ -461,3 +461,76 @@ def test_persisted_email_metadata_constraints(client, changes):
         db.session.flush()
     db.session.rollback()
     assert db.session.query(Sale).count() == db.session.query(Invoice).count() == 1
+
+
+@pytest.mark.parametrize(
+    "address,expected",
+    [
+        (
+            "Del parque de San José, 200 metros al norte.",
+            "Del parque de San José, 200 metros al norte.",
+        ),
+        ("Edificio azul.\nApartamento  3.", "Edificio azul.\nApartamento  3."),
+    ],
+)
+def test_email_uses_text_snapshot_and_replay_does_not_resend(client, app, address, expected):
+    transport = RecordingTransport()
+    inject(app, transport)
+    token, product = prepare(client)
+    payload = checkout_payload()
+    payload["shipping_address"] = address
+    response = _checkout(client, token, payload=payload)
+    assert response.status_code == 201
+    assert f"Dirección de envío:\n{expected}\n\n" in transport.messages[0].get_content()
+    assert _checkout(client, token, payload=payload).get_json() == response.get_json()
+    assert len(transport.messages) == 1
+    assert product.stock == 3
+    assert db.session.query(Sale).count() == db.session.query(Invoice).count() == 1
+
+
+def test_email_retry_formats_legacy_address_without_mutating_snapshot(client, app):
+    transport = RecordingTransport()
+    inject(app, transport)
+    app.config["EMAIL_ENABLED"] = False
+    token, _ = prepare(client)
+    _checkout(client, token)
+    sale = db.session.query(Sale).one()
+    legacy = {
+        "line1": "Calle 1",
+        "line2": None,
+        "city": "San José",
+        "province": "San José",
+        "postal_code": "10101",
+        "country": "CR",
+    }
+    sale.shipping_address = legacy
+    db.session.commit()
+    app.config["EMAIL_ENABLED"] = True
+    assert retry(client, token, sale.id).status_code == 200
+    content = transport.messages[0].get_content()
+    assert "Dirección de envío:\nCalle 1\nSan José\nSan José\n10101\nCR\n\n" in content
+    assert "None" not in content and "{'" not in content
+    assert sale.shipping_address == legacy
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (None, []),
+        ([], []),
+        (42, []),
+        ({"unknown": "private"}, []),
+        ({"line1": {}, "city": None, "country": []}, []),
+        ({"line1": "Calle 1", "line2": " ", "city": "San José"}, ["Calle 1", "San José"]),
+        ("  Calle 1\r\n\r\nApartamento  3.  ", ["Calle 1", "", "Apartamento  3."]),
+        ("Calle\x00azul", []),
+    ],
+)
+def test_shipping_display_formatter_fails_safely_for_malformed_values(value, expected):
+    from copy import deepcopy
+
+    from app.services.email_service import format_shipping_address
+
+    original = deepcopy(value)
+    assert format_shipping_address(value) == expected
+    assert value == original

@@ -28,6 +28,29 @@ class EmailTransport(Protocol):
     def send(self, message: EmailMessage) -> None: ...
 
 
+def format_shipping_address(value) -> list[str]:
+    """Display new text snapshots and legacy known fields without changing stored data."""
+
+    def safe_lines(text):
+        if not isinstance(text, str):
+            return []
+        text = text.replace("\r\n", "\n").replace("\r", "\n").strip()
+        if any(ord(char) < 32 and char != "\n" for char in text):
+            return []
+        return text.split("\n") if text else []
+
+    if isinstance(value, str):
+        return safe_lines(value)
+    if isinstance(value, dict):
+        return [
+            line
+            for field in ("line1", "line2", "city", "province", "postal_code", "country")
+            for line in safe_lines(value.get(field))
+            if line
+        ]
+    return []
+
+
 def build_confirmation(sale, sender):
     sender = validate_email_address(sender)
     recipient = validate_email_address(sale.buyer_email)
@@ -59,19 +82,7 @@ def build_confirmation(sale, sender):
         "",
         "Dirección de envío:",
     ]
-    address = sale.shipping_address
-    lines.extend(
-        str(address[field])
-        for field in (
-            "line1",
-            "line2",
-            "city",
-            "province",
-            "postal_code",
-            "country",
-        )
-        if address.get(field)
-    )
+    lines.extend(format_shipping_address(sale.shipping_address))
     lines += ["", "Conserva esta confirmación como referencia de tu compra."]
     message.set_content("\n".join(lines))
     return message

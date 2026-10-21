@@ -162,10 +162,13 @@ Each cart can include a product only once through `uq_cart_items_cart_product`. 
 - `total_amount`: required numeric value, must be greater than or equal to 0.
 - `completed_at`: optional timestamp.
 - `idempotency_key`: nullable string(128), unique with `user_id` for keyed purchases.
-- `request_fingerprint`: nullable string(64), SHA-256 normalized buyer/address fingerprint.
+- `request_fingerprint`: nullable string(64), SHA-256 fingerprint of normalized
+  buyer/address/items/total input; items are sorted by product ID.
 - `full_name`: nullable string(200), immutable buyer snapshot.
 - `buyer_email`: nullable string(254), immutable buyer snapshot.
-- `shipping_address`: nullable JSON, immutable structured snapshot.
+- `shipping_address`: nullable JSON; new immutable snapshots are normalized complete-address
+  strings (maximum 500 characters). Legacy structured snapshots remain readable.
+  No column or migration change is needed for JSON strings.
 - `email_status`: required string(10), `pending`, `sent`, or `failed`; default `pending`.
 - `email_attempts`: required integer, 0 through 3; default 0.
 - `email_in_flight`: required boolean, default false; durable delivery fence.

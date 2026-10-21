@@ -6,16 +6,19 @@ const SAFE_MESSAGES = new Set([
   "Quantity cannot be greater than available stock.", "Active cart has no items.",
   "Insufficient stock for one or more products.", "Purchase total exceeds the supported limit.",
   "Idempotency key was already used with different details.",
+  "Checkout cart snapshot does not match the active cart.",
+  "Checkout total does not match the current cart total.",
 ]);
 const TEXT_LIMITS = {
   full_name: 200, buyer_email: 254,
-  "shipping_address.line1": 200, "shipping_address.line2": 200,
-  "shipping_address.city": 100, "shipping_address.province": 100,
-  "shipping_address.postal_code": 20, "shipping_address.country": 2,
 };
 const VALIDATION_MESSAGES = {
   body: ["A JSON object is required.", "Unsupported fields."],
-  shipping_address: ["A shipping address object is required.", "Unsupported address fields."],
+  items: ["Must contain 1 to 1000 items.", "Duplicate products are not allowed.",
+    "Each item must contain only product_id and quantity.",
+    "Product IDs and quantities must be positive integers no greater than 2147483647."],
+  total_amount: ["Must be a canonical two-decimal string between 0.00 and 99999999.99."],
+  shipping_address: ["Must be a string.", "Must contain 1 to 500 characters without control characters except line breaks."],
   product_id: ["Product id is required.", "Product id must be an integer."],
   quantity: ["Quantity is required.", "Quantity must be an integer.", "Quantity must be greater than 0."],
   "Idempotency-Key": ["Required: 1 to 128 ASCII letters, digits, '.', '_', ':', '-'."],
@@ -24,7 +27,6 @@ for (const [field, limit] of Object.entries(TEXT_LIMITS)) {
   VALIDATION_MESSAGES[field] = ["Must be a string.", `Must contain 1 to ${limit} characters without control characters.`];
 }
 VALIDATION_MESSAGES.buyer_email.push("Must be a valid email address.");
-VALIDATION_MESSAGES["shipping_address.country"].push("Must be a two-letter country code.");
 
 export function validationError(field, message) {
   return new ApiError("Invalid request payload.", 400, { [field]: message });

@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "react-toastify";
 import { AuthContext } from "./AuthContext";
 import { createAuthSession } from "./authSession";
