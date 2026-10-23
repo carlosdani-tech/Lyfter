@@ -81,7 +81,8 @@ class ProductService:
 
     @staticmethod
     def update_product(product_id: int, payload: dict) -> dict:
-        product = ProductRepository.get_by_id(product_id)
+        products = ProductRepository.lock_by_ids([product_id])
+        product = products[0] if products else None
         if not product:
             raise ProductError("Product not found.", 404)
 
@@ -92,7 +93,8 @@ class ProductService:
 
     @staticmethod
     def deactivate_product(product_id: int) -> dict:
-        product = ProductRepository.get_by_id(product_id)
+        products = ProductRepository.lock_by_ids([product_id])
+        product = products[0] if products else None
         if not product:
             raise ProductError("Product not found.", 404)
 

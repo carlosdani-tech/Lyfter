@@ -1,6 +1,7 @@
-﻿from flask import Blueprint
+from flask import Blueprint, request
 from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
 
+from app.schemas.sale_schema import validate_checkout_payload
 from app.services.auth_service import ADMIN_ROLE, CLIENT_ROLE
 from app.services.sale_service import SaleError, SaleService
 from app.utils.responses import error_response, success_response
@@ -25,11 +26,29 @@ def checkout():
         return error_response("Client permission is required.", 403)
 
     try:
-        data = SaleService.checkout(user_id)
+        key = request.headers.get("Idempotency-Key")
+        payload = validate_checkout_payload(request.get_json(silent=True), key)
+    except ValueError as error:
+        return error_response("Invalid request payload.", 400, error.args[0])
+    try:
+        data = SaleService.checkout(user_id, payload, key)
     except SaleError as error:
         return error_response(error.message, error.status_code)
 
     return success_response(data, 201)
+
+
+@sales_bp.get("/<int:sale_id>/confirmation")
+@jwt_required()
+def get_confirmation(sale_id: int):
+    user_id, role = _current_user_context()
+    if role != CLIENT_ROLE:
+        return error_response("Client permission is required.", 403)
+    try:
+        data = SaleService.get_confirmation(sale_id, user_id)
+    except SaleError as error:
+        return error_response(error.message, error.status_code)
+    return success_response(data)
 
 
 @sales_bp.post("/<int:sale_id>/cancel")
@@ -48,6 +67,19 @@ def cancel_sale(sale_id: int):
     return success_response(data)
 
 
+@sales_bp.post("/<int:sale_id>/email/retry")
+@jwt_required()
+def retry_email(sale_id: int):
+    user_id, role = _current_user_context()
+    if role != CLIENT_ROLE:
+        return error_response("Client permission is required.", 403)
+    try:
+        data = SaleService.retry_email(sale_id, user_id)
+    except SaleError as error:
+        return error_response(error.message, error.status_code)
+    return success_response(data)
+
+
 @sales_bp.post("/<int:sale_id>/return")
 @jwt_required()
 def return_sale(sale_id: int):
@@ -62,4 +94,3 @@ def return_sale(sale_id: int):
         return error_response(error.message, error.status_code)
 
     return success_response(data)
-

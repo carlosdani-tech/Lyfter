@@ -1,17 +1,20 @@
 # Development Workflows
 
-Use this file as the operational workflow for Codex CLI and VS Code development.
+Use this file as the operational workflow for project development.
 
 ## Setup workflow
 
-1. Create the virtual environment.
-2. Install dependencies from `requirements.txt`.
-3. Copy `.env.example` to `.env`.
+These are developer-run steps, not commands executed by this documentation task.
+Use installed dependencies; obtain approval before provisioning/installing.
+
+1. Verify the existing virtual environment and Node dependencies.
+2. If missing, obtain approval for dependency/environment installation.
+3. Configure `.env.example` variable names privately with `.env` edit approval.
 4. Generate separate `SECRET_KEY` and `JWT_SECRET_KEY` values. Configure strong,
    different `ADMIN_SEED_PASSWORD` and `CLIENT_SEED_PASSWORD` values. Never
    commit `.env` or reuse secrets between environments.
-5. Configure PostgreSQL and Redis locally.
-6. Run migrations after models exist.
+5. Configure PostgreSQL; leave Redis/email disabled unless explicitly configured.
+6. Review migrations, backups, seed side effects, and rollout in [database](database.md); apply only after separate approval.
 7. Run the app.
 8. Validate with lint and tests.
 
@@ -28,14 +31,16 @@ Available tasks:
 - `db-init`: initialize migrations if `migrations/` does not exist.
 - `db-migrate`: create an Alembic migration.
 - `db-upgrade`: apply migrations.
-- `db-downgrade`: rollback one migration.
+- `db-downgrade`: invokes downgrade; Phase 4 downgrades intentionally raise.
 - `validate`: run lint, then tests.
 
-Prefer these tasks over ad hoc commands.
+Tasks exist in `.vscode/tasks.json`, but their presence does not grant approval
+for installation, generation, upgrade, downgrade, or formatting unrelated work.
+Migration tasks load the application and can attempt seeding before running.
 
 ## Feature workflow
 
-1. Read `AGENTS.md`.
+1. Read the current project documentation and operational guide.
 2. Inspect existing module patterns.
 3. Add or update models only when schema is needed.
 4. Add schema validation.
@@ -48,22 +53,18 @@ Prefer these tasks over ad hoc commands.
 11. Run `validate`.
 12. Update docs.
 
-## Codex skills
+## Project guidance
 
-For the current React + Flask integration phase, use the workspace skill and guides:
-
-- `../.codex/skills/pet-ecommerce-integration/SKILL.md`
-- `../AGENTS.md`
-- `../docs/codex-implementation-guide.md`
-- `../docs/codex-prompts.md`
-
-The older backend-specific skills listed in previous project notes may not be installed in every environment. Prefer the integration guide above unless the user explicitly asks for backend-only expansion.
+Use the [Phase 4 operational guide](../../docs/phase-4-operations.md), the
+frontend/backend READMEs, and the module contracts in this documentation folder.
+These describe implemented behavior and the remaining deployment checks.
 
 ## Approval boundaries
 
 Ask before:
 
 - Installing dependencies.
+- Generating or applying migrations.
 - Deleting files.
 - Dropping database objects.
 - Changing authentication strategy.
@@ -86,16 +87,28 @@ Ask before:
 
 ## Current React integration workflow
 
-The React frontend currently consumes only authentication and product endpoints.
-Cart, checkout, sales, invoices, and user management are not part of this
-frontend phase.
+Phase 4 supersedes older frontend exclusions. The current backend
+checkout contract and migration deployment gates are documented in
+[checkout](checkout.md). Do not deploy the new backend before reviewing and
+approving both additive checkout/email migrations. This documentation update
+applies none and does not inspect a live applied revision. The
+email transport is disabled by default; see [email setup](email.md).
+Before integration, account for the documented contract mismatch: current code
+requires a text address plus items/total comparison snapshots, while repository
+instructions require a structured address and buyer-only input. Resolve any
+contract change through separate approval rather than deploying from an older
+request example.
+
+React consumes authentication, public/admin products, client cart, checkout,
+and owner-only confirmation with invoice data. Backend email retry and
+invoice/cancellation/return APIs exist without dedicated frontend controls.
+Frontend registration, user management, and real payments remain outside scope.
 
 Run the backend:
 
 ```powershell
 cd "Pets ECommerce"
-.venv\Scripts\python -m flask --app run.py db upgrade
-.venv\Scripts\python -m flask --app run.py run --debug
+.venv\Scripts\python -m flask --app run.py run --debug --port 5000
 ```
 
 Run the frontend in a second terminal:
@@ -114,4 +127,11 @@ cd "Pets ECommerce"
 cd ..\project-1
 npm.cmd run lint
 npm.cmd run build
+npm.cmd test
 ```
+
+The [operational guide](../../docs/phase-4-operations.md) supplies
+the public/client/admin manual matrix and documents key-loss, stock, delivery,
+SPA hosting, and logging limits. The [validation record](testing.md#documentation-validation-record)
+lists actual commands executed for this update. These start commands are not
+a record of live service, SMTP, or migration verification.

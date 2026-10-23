@@ -10,6 +10,7 @@ from app.models import Product
 from app.services.auth_service import ADMIN_ROLE, CLIENT_ROLE
 from app.utils.cache import build_cache_key, delete_key, delete_pattern, get_json, set_json
 from tests.conftest import auth_header, create_user, login_user
+from tests.test_sales_invoices import checkout_payload
 
 
 class FakeRedis:
@@ -162,7 +163,11 @@ def test_product_cache_invalidates_after_checkout_stock_change(client, monkeypat
         json={"product_id": product.id, "quantity": 2},
         headers=auth_header(client_token),
     )
-    response = client.post("/sales/checkout", headers=auth_header(client_token))
+    response = client.post(
+        "/sales/checkout",
+        json=checkout_payload(),
+        headers={**auth_header(client_token), "Idempotency-Key": "cache-checkout"},
+    )
 
     assert response.status_code == 201
     assert list_key not in fake_redis.store

@@ -76,6 +76,15 @@ class Config:
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    EMAIL_ENABLED = _get_bool_env("EMAIL_ENABLED")
+    SMTP_HOST = os.getenv("SMTP_HOST", "")
+    SMTP_PORT = _get_int_env("SMTP_PORT", "587")
+    SMTP_SECURITY = os.getenv("SMTP_SECURITY", "starttls")
+    SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
+    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+    SMTP_SENDER = os.getenv("SMTP_SENDER", "")
+    SMTP_TIMEOUT_SECONDS = _get_float_env("SMTP_TIMEOUT_SECONDS", "10")
+
     REDIS_ENABLED = _get_bool_env("REDIS_ENABLED", "false")
     REDIS_HOST = os.getenv("REDIS_HOST", "your-redis-cloud-host")
     REDIS_PORT = _get_int_env("REDIS_PORT", "0")

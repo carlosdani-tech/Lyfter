@@ -19,11 +19,15 @@ async function parseResponse(response) {
   const contentType = response.headers.get("content-type") || "";
 
   if (contentType.includes("application/json")) {
-    return response.json();
+    try {
+      return await response.json();
+    } catch (error) {
+      if (error.name === "AbortError") throw error;
+      return null;
+    }
   }
 
-  const text = await response.text();
-  return text ? { error: { message: text } } : {};
+  return null;
 }
 
 export async function request(
@@ -50,19 +54,23 @@ export async function request(
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch (error) {
-    throw new ApiError("Unable to connect to the API.", 0, {
-      cause: error.message,
-    });
+    if (error.name === "AbortError") throw error;
+    throw new ApiError("Unable to connect to the API.", 0);
   }
 
   const payload = await parseResponse(response);
 
   if (!response.ok) {
     throw new ApiError(
-      payload?.error?.message || `API request failed with status ${response.status}.`,
+      response.status >= 500 ? "The service is temporarily unavailable."
+        : payload?.error?.message || `API request failed with status ${response.status}.`,
       response.status,
-      payload?.error?.details ?? null,
+      response.status < 500 ? payload?.error?.details ?? null : null,
     );
+  }
+
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new ApiError("The API returned an invalid response.", 502);
   }
 
   return Object.hasOwn(payload, "data") ? payload.data : payload;

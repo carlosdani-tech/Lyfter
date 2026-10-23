@@ -2,7 +2,8 @@
 
 ## Purpose
 
-This project uses Redis Cloud as the cache database.
+This project optionally uses a configured Redis service; Redis Cloud is supported.
+Keep `REDIS_ENABLED=false` until approved configuration is available.
 
 Redis Insight Desktop is used as a visual tool to inspect, debug, and manage Redis cache keys during development.
 
@@ -23,17 +24,10 @@ Redis Insight Desktop connects to the same Redis Cloud database to inspect cache
 
 The Flask app uses these Redis environment variables:
 
-```env
-REDIS_HOST=your-redis-cloud-host
-REDIS_PORT=your-redis-cloud-port
-REDIS_DB=0
-REDIS_PASSWORD=your-redis-cloud-password
-REDIS_DEFAULT_TTL_SECONDS=300
-REDIS_KEY_PREFIX=pet_ecommerce
-REDIS_SSL=false
-```
-
-Real values must be stored only in the local `.env` file.
+Names: `REDIS_ENABLED`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`,
+`REDIS_PASSWORD`, `REDIS_DEFAULT_TTL_SECONDS`, `REDIS_KEY_PREFIX`, `REDIS_SSL`,
+`REDIS_SOCKET_CONNECT_TIMEOUT`, and `REDIS_SOCKET_TIMEOUT`.
+Supply real values privately through approved local/deployment configuration.
 
 Do not commit `.env`.
 
@@ -45,15 +39,9 @@ Redis Cloud separately from the Flask app.
 
 Open Redis Insight Desktop and connect to the Redis Cloud database.
 
-Connection example:
-
-```text
-Host: your-redis-cloud-host
-Port: your-redis-cloud-port
-Connection Type: Standalone
-Password: your-redis-cloud-password
-Database Alias: pet-ecommerce-cache
-```
+Use the privately configured service endpoint, database, authentication, and
+TLS mode in the tool. Do not publish credentials or connection screenshots.
+No live Redis Insight verification was performed for this documentation update.
 
 ## Cache key pattern
 
@@ -63,7 +51,7 @@ All project cache keys must use this pattern:
 pet_ecommerce:<module>:<resource>:<identifier>
 ```
 
-Examples:
+Examples below assume the default `REDIS_KEY_PREFIX=pet_ecommerce`:
 
 ```text
 pet_ecommerce:products:list
@@ -115,7 +103,9 @@ pet_ecommerce:products:detail:<product_id>
 
 ## Manual cache cleanup
 
-During development, it is safe to manually delete product cache keys from Redis Insight Desktop.
+Manual key deletion requires authorization and a verified target environment.
+Do not treat this documentation as permission to delete keys. Never flush
+shared databases or modify private purchase/email state.
 
 Recommended keys to delete manually if needed:
 

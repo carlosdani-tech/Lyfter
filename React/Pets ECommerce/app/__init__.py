@@ -7,6 +7,8 @@ from app.config import Config, validate_required_config
 from app.extensions import db, jwt, migrate
 from app.models import load_models
 from app.routes import register_blueprints
+from app.services.email_service import EmailService
+from app.services.email_transport import SMTPTransport
 from app.utils.seed import seed_development_users
 
 _REDIS_PLACEHOLDER_HOSTS = {"", "your-redis-cloud-host"}
@@ -44,7 +46,7 @@ def _create_redis_client(app: Flask) -> Redis | None:
     )
 
 
-def create_app(config_class: type[Config] = Config) -> Flask:
+def create_app(config_class: type[Config] = Config, *, email_transport=None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_class)
     validate_required_config(app.config)
@@ -57,13 +59,17 @@ def create_app(config_class: type[Config] = Config) -> Flask:
             "http://127.0.0.1:8080",
         ],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization"],
+        allow_headers=["Content-Type", "Authorization", "Idempotency-Key"],
     )
 
     db.init_app(app)
     load_models()
     migrate.init_app(app, db)
     jwt.init_app(app)
+
+    app.extensions["email_service"] = EmailService(
+        email_transport if email_transport is not None else SMTPTransport(app.config)
+    )
 
     extensions.redis_client = _create_redis_client(app)
 

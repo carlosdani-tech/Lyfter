@@ -19,20 +19,17 @@ class SaleRepository:
 
     @staticmethod
     def get_by_id(sale_id: int) -> Sale | None:
-        return db.session.get(Sale, sale_id)
-
-    @staticmethod
-    def list_by_user_id(user_id: int) -> list[Sale]:
         return (
-            db.session.query(Sale)
-            .filter(Sale.user_id == user_id)
-            .order_by(Sale.created_at.desc())
-            .all()
+            db.session.query(Sale).filter(Sale.id == sale_id)
+            .populate_existing().with_for_update().one_or_none()
         )
 
     @staticmethod
-    def list_all() -> list[Sale]:
-        return db.session.query(Sale).order_by(Sale.created_at.desc()).all()
+    def get_by_checkout_key(user_id: int, key: str) -> Sale | None:
+        return (
+            db.session.query(Sale).filter(Sale.user_id == user_id, Sale.idempotency_key == key)
+            .populate_existing().with_for_update().one_or_none()
+        )
 
     @staticmethod
     def update_status(sale: Sale, status: str, **timestamps) -> Sale:

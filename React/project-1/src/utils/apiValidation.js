@@ -10,18 +10,19 @@ const PRODUCT_FIELD_LABELS = {
 const VALIDATION_FALLBACK =
   "Revisa los datos del producto e intenta nuevamente.";
 
-function collectDetailText(detail) {
+function collectDetailText(detail, depth = 0) {
+  if (depth > 2) return "";
   if (typeof detail === "string") {
     return detail;
   }
 
   if (Array.isArray(detail)) {
-    return detail.map(collectDetailText).filter(Boolean).join(" ");
+    return detail.slice(0, 20).map((value) => collectDetailText(value, depth + 1)).filter(Boolean).join(" ");
   }
 
   if (detail && typeof detail === "object") {
-    return Object.values(detail)
-      .map(collectDetailText)
+    return Object.values(detail).slice(0, 20)
+      .map((value) => collectDetailText(value, depth + 1))
       .filter(Boolean)
       .join(" ");
   }
@@ -50,27 +51,16 @@ function getFieldMessage(field, detail) {
         : "debe ser un número válido.";
     case "stock":
       if (detailText.includes("required")) {
-        return "es obligatorio.";
+        return "la cantidad es obligatoria.";
       }
       return detailText.includes("greater than or equal")
-        ? "debe ser mayor o igual a 0."
-        : "debe ser un número entero válido.";
+        ? "la cantidad debe ser mayor o igual a 0."
+        : "la cantidad debe ser un número entero válido.";
     case "image_url":
       return "debe tener como máximo 500 caracteres.";
     default:
       return "contiene un valor inválido.";
   }
-}
-
-function getFieldLabel(field) {
-  if (PRODUCT_FIELD_LABELS[field]) {
-    return PRODUCT_FIELD_LABELS[field];
-  }
-
-  const readableField = field.replaceAll("_", " ").trim();
-  return readableField
-    ? readableField.charAt(0).toUpperCase() + readableField.slice(1)
-    : "Campo";
 }
 
 export function formatProductValidationError(error) {
@@ -84,9 +74,9 @@ export function formatProductValidationError(error) {
     return VALIDATION_FALLBACK;
   }
 
-  const messages = Object.entries(details).map(
+  const messages = Object.entries(details).filter(([field]) => Object.hasOwn(PRODUCT_FIELD_LABELS, field)).map(
     ([field, detail]) =>
-      `${getFieldLabel(field)}: ${getFieldMessage(field, detail)}`,
+      `${PRODUCT_FIELD_LABELS[field]}: ${getFieldMessage(field, detail)}`,
   );
 
   return messages.length > 0

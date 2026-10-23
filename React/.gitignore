@@ -50,7 +50,7 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Codex and local agent configuration
+# Local development tooling and agent configuration
 .codex/
 .agents/
 .codex-*/
@@ -58,3 +58,7 @@ Thumbs.db
 AGENTS.md
 *.codex.log
 codex-*.md
+
+# Workspace-only documentation; keep these files out of normal staging.
+/README.md
+/project-1/docs/dead-code-audit.md

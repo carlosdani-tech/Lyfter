@@ -1,6 +1,8 @@
 # Entity-Relationship Diagram
 
-This diagram represents the current PostgreSQL schema used by the Flask API.
+This diagram represents the implemented ORM schema and migration target,
+not a verified live database schema. See [database](database.md) for the
+revision chain and deployment gates.
 
 ```mermaid
 erDiagram
@@ -38,6 +40,7 @@ erDiagram
         int id PK
         string name
         text description
+        string category
         numeric price
         int stock
         string image_url
@@ -69,6 +72,17 @@ erDiagram
         int cart_id FK
         string status
         numeric subtotal_amount
+        string idempotency_key
+        string request_fingerprint
+        string full_name
+        string buyer_email
+        json shipping_address
+        string email_status
+        int email_attempts
+        boolean email_in_flight
+        timestamptz email_last_attempt_at
+        timestamptz email_sent_at
+        string email_error_code
         numeric tax_amount
         numeric total_amount
         timestamptz completed_at
@@ -84,6 +98,7 @@ erDiagram
         int product_id FK
         int quantity
         numeric unit_price
+        string product_name
         numeric line_total
         timestamptz created_at
         timestamptz updated_at
@@ -122,6 +137,10 @@ erDiagram
 - `cart_items.quantity > 0`.
 - `cart_items.cart_id + cart_items.product_id` is unique.
 - `sales.cart_id` is unique.
+- Active carts have a partial unique user index.
+- `sales.user_id + sales.idempotency_key` is unique for non-null keys.
+- Keyed purchases require buyer/shipping/completion snapshots and consistent totals.
+- Email state/attempt/error-code/sent/in-flight constraints match the model.
 - `sale_items.quantity > 0`.
 - `sale_items.unit_price >= 0`.
 - `sale_items.line_total >= 0`.
@@ -133,9 +152,13 @@ erDiagram
 
 - `carts.status`: `active`, `checked_out`, `abandoned`.
 - `sales.status`: `completed`, `cancelled`, `returned`.
+- `sales.email_status`: `pending`, `sent`, `failed` (independent of purchase status).
 - `invoices.status`: `issued`, `cancelled`, `refunded`.
 
 ## pgAdmin Verification SQL
+
+Developer-run read-only schema inspection below was not executed by this
+documentation update. Use an approved connection and keep all credentials private.
 
 ```sql
 SELECT

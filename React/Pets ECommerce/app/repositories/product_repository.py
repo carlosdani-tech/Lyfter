@@ -4,6 +4,13 @@ from app.models import Product
 
 class ProductRepository:
     @staticmethod
+    def lock_by_ids(product_ids) -> list[Product]:
+        return (
+            db.session.query(Product).filter(Product.id.in_(product_ids))
+            .order_by(Product.id).populate_existing().with_for_update().all()
+        )
+
+    @staticmethod
     def create(**product_data) -> Product:
         product = Product(**product_data)
         db.session.add(product)

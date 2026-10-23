@@ -1,6 +1,7 @@
 # Redis Cache
 
-This project uses **Redis Cloud** as the cache database.
+This project optionally uses a configured Redis service (including Redis Cloud)
+for public product responses. `REDIS_ENABLED=false` is the safe default.
 
 **Redis Insight Desktop** is used only as a visual tool to inspect, debug, and manage cache keys during development.
 
@@ -41,20 +42,14 @@ The application must use environment variables to connect to Redis Cloud.
 
 ## Environment variables
 
-The real values must be stored in the local `.env` file.
-
-```env
-REDIS_ENABLED=false
-REDIS_HOST=your-redis-cloud-host
-REDIS_PORT=your-redis-cloud-port
-REDIS_DB=0
-REDIS_PASSWORD=your-redis-cloud-password
-REDIS_DEFAULT_TTL_SECONDS=300
-REDIS_KEY_PREFIX=pet_ecommerce
-REDIS_SSL=false
-REDIS_SOCKET_CONNECT_TIMEOUT=1
-REDIS_SOCKET_TIMEOUT=1
-```
+Names: `REDIS_ENABLED`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_DB`,
+`REDIS_PASSWORD`, `REDIS_DEFAULT_TTL_SECONDS`, `REDIS_KEY_PREFIX`, `REDIS_SSL`,
+`REDIS_SOCKET_CONNECT_TIMEOUT`, and `REDIS_SOCKET_TIMEOUT`. Supply endpoint
+and authentication privately through approved environment configuration.
+The template disables Redis, leaves credentials blank and uses port zero.
+Testing also disables Redis automatically. Missing/placeholder host or a
+nonpositive port prevents client creation; network operations occur when the
+cache helpers run, not as a startup connection test.
 
 The `.env.example` file must contain only example values.
 
@@ -68,14 +63,8 @@ Never commit the real `.env` file.
 
 Redis Insight Desktop must connect to the same Redis Cloud database used by the Flask app.
 
-Connection example:
-
-```text
-Host: your-redis-cloud-host
-Port: your-redis-cloud-port
-Connection type: Standalone
-Password: your-redis-cloud-password
-```
+Use the privately configured host, port, database, TLS, and authentication in
+the inspection tool. Do not publish its connection details.
 
 Redis Insight Desktop is used to verify:
 
@@ -107,7 +96,8 @@ products:list
 products:detail:<product_id>
 ```
 
-The `pet_ecommerce` prefix keeps this project's keys organized and easy to find in Redis Insight Desktop.
+`pet_ecommerce` is the default `REDIS_KEY_PREFIX`; literal key examples below
+assume that default, not a hardcoded deployment prefix.
 
 ## Implemented cached endpoints
 
@@ -116,18 +106,11 @@ The `pet_ecommerce` prefix keeps this project's keys organized and easy to find 
 | `GET /products`      | `pet_ecommerce:products:list`                | `REDIS_DEFAULT_TTL_SECONDS` |
 | `GET /products/<id>` | `pet_ecommerce:products:detail:<product_id>` | `REDIS_DEFAULT_TTL_SECONDS` |
 
-## Good cache candidates
+## Implemented scope
 
-Good cache candidates are read-heavy, non-sensitive endpoints.
-
-Recommended:
-
-* product catalog listing
-* product detail
-
-Optional, only if implemented safely:
-
-* invoice lookup, only with strict ownership checks
+Only product list/detail data is cached. Invoices, sales, confirmations, carts,
+buyer/shipping snapshots, idempotency keys/fingerprints, and email delivery
+state/content are not cached. Invoice caching is not an implemented option.
 
 ## Do not cache
 
@@ -151,12 +134,6 @@ pet_ecommerce:products:list
 pet_ecommerce:products:detail:<product_id>
 ```
 
-Optional invoice cache key, only if implemented with strict ownership checks:
-
-```text
-pet_ecommerce:invoices:detail:<invoice_id>
-```
-
 ## TTL rules
 
 All cached values must have a TTL.
@@ -178,24 +155,41 @@ Product cache must be invalidated after:
 * product delete or deactivate
 * stock change
 * purchase
-* return or cancellation, if implemented
+* return or cancellation
 
-Recommended invalidation targets:
+Checkout, cancellation and return invalidate affected product list/detail keys
+after commit. Checkout replay performs no stock write. Buyer/shipping snapshots,
+idempotency keys, fingerprints, and confirmation responses are never cached.
+Redis failures retain best-effort invalidation and TTL fallback behavior.
+
+Email delivery status, attempt metadata, recipients, and message content are
+never cached. Email retries do not change stock or require product invalidation.
+
+Normal mutation invalidation targets the list key and affected detail key:
 
 ```text
 pet_ecommerce:products:list
 pet_ecommerce:products:detail:<product_id>
 ```
 
-If multiple product keys must be removed, use pattern-based invalidation:
+`invalidate_product_cache(None)` additionally scans detail keys with this
+pattern; it is not a database flush:
 
 ```text
-pet_ecommerce:products:*
+pet_ecommerce:products:detail:*
 ```
 
 ## Redis Insight Desktop verification
 
-After implementing cache, verify it with Redis Insight Desktop.
+Developer-run checks below were not executed by this documentation task.
+Use an approved test Redis/database setup and existing data; do not mutate
+products or manually delete keys without authorization. Redis errors are
+swallowed by cache helpers: reads fall back to SQL, writes/invalidation are
+best effort. Failed invalidation can leave stale public data until TTL expiry;
+checkout revalidates stock and price from locked SQL rows, never Redis.
+Consequently, a stale cached catalog price can differ from the cart total.
+Checkout compares the submitted cart/total snapshot with current SQL state and
+returns 409 on mismatch; it never uses Redis or the submitted amount to set prices.
 
 ### Verify product list cache
 

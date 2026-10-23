@@ -12,6 +12,7 @@ class CartRepository:
         return (
             db.session.query(Cart)
             .filter(Cart.user_id == user_id, Cart.status == ACTIVE_CART_STATUS)
+            .populate_existing().with_for_update()
             .one_or_none()
         )
 
@@ -40,7 +41,17 @@ class CartRepository:
 
     @staticmethod
     def get_item_by_id(item_id: int) -> CartItem | None:
-        return db.session.get(CartItem, item_id)
+        return (
+            db.session.query(CartItem).filter(CartItem.id == item_id)
+            .populate_existing().one_or_none()
+        )
+
+    @staticmethod
+    def lock_items(cart_id: int) -> list[CartItem]:
+        return (
+            db.session.query(CartItem).filter(CartItem.cart_id == cart_id)
+            .order_by(CartItem.product_id).populate_existing().with_for_update().all()
+        )
 
     @staticmethod
     def add_item(cart_id: int, product_id: int, quantity: int) -> CartItem:
