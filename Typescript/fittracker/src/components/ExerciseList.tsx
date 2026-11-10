@@ -1,19 +1,16 @@
 import type { JSX } from 'react'
-import type { WeeklyRoutine } from '../types/fitness'
 import { calculatePace, type ExerciseCalorieContribution } from '../utils/calculations'
 import { formatDuration } from '../utils/formatters'
-import { dayLabels } from './weekdays'
+import { dayLabels } from '../constants/weekdays'
 
 interface ExerciseListProps {
-  routine: WeeklyRoutine
   contributions: ExerciseCalorieContribution[]
 }
 
-export default function ExerciseList({ routine, contributions }: ExerciseListProps): JSX.Element {
+export default function ExerciseList({ contributions }: ExerciseListProps): JSX.Element {
   return (
-    <section aria-labelledby="exercise-list-heading">
-      <h2 id="exercise-list-heading">{routine.name}</h2>
-      {routine.entries.length === 0 ? <p>Todavía no hay ejercicios registrados.</p> : (
+    <>
+      {contributions.length === 0 ? <p>Todavía no hay ejercicios registrados.</p> : (
         <ul>
           {contributions.map(({ entry, calories, percentage }: ExerciseCalorieContribution): JSX.Element => {
             const pace = calculatePace(entry.exercise)
@@ -29,6 +26,6 @@ export default function ExerciseList({ routine, contributions }: ExerciseListPro
           })}
         </ul>
       )}
-    </section>
+    </>
   )
 }

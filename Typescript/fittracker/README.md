@@ -71,7 +71,9 @@ fittracker/
 │   │   ├── ExerciseForm.tsx    # Registro de ejercicios
 │   │   ├── ExerciseList.tsx    # Lista y estadísticas por entrada
 │   │   ├── WorkoutSummary.tsx # Totales y comparación
-│   │   └── weekdays.ts        # Días y etiquetas
+│   │   └── experienceLevels.ts # Etiquetas de experiencia
+│   ├── constants/
+│   │   └── weekdays.ts        # Etiquetas de días y referencia a la tupla canónica
 │   ├── types/
 │   │   └── fitness.ts         # Modelos del dominio
 │   ├── utils/
@@ -96,19 +98,24 @@ Definidos en `src/types/fitness.ts`:
 
 | Modelo | Campos o valores |
 | --- | --- |
-| `Exercise` | `id: string`, `name: string`, `durationMinutes: number`, `caloriesPerMinute: number`, `distanceKm?: number` |
+| `Exercise` | `id: string`, `name: string`, `durationMinutes: number`, `caloriesPerMinute: CaloriesPerMinute`, `distanceKm?: number` |
 | `RoutineEntry` | `day: DayOfWeek`, `exercise: Exercise` |
 | `WeeklyRoutine` | `name: string`, `entries: RoutineEntry[]` |
 | `UserProfile` | `name: string`, `age: number`, `experienceLevel: ExperienceLevel`, `routine: WeeklyRoutine` |
 | `DayOfWeek` | `"monday"`, `"tuesday"`, `"wednesday"`, `"thursday"`, `"friday"`, `"saturday"`, `"sunday"` |
 
+`CaloriesPerMinute` es un alias de `number` que expresa el significado de la tasa calórica. No cambia su representación numérica ni sustituye las validaciones de entrada.
+
 ### Nivel de experiencia
 
 ```ts
-export type ExperienceLevel = "beginner" | "intermediate" | "advanced";
+export const EXPERIENCE_LEVELS = ["beginner", "intermediate", "advanced"] as const;
+export type ExperienceLevel = typeof EXPERIENCE_LEVELS[number];
 ```
 
-Esta unión restringe el tipo a tres opciones. La interfaz muestra etiquetas en español y comprueba el valor del selector antes de actualizar el estado.
+`as const` conserva los valores literales y convierte el arreglo en una tupla de solo lectura para TypeScript. `typeof EXPERIENCE_LEVELS[number]` obtiene la unión de los tipos de sus elementos. La interfaz genera las opciones desde esta tupla y `isExperienceLevel` valida el valor del selector antes de actualizar el estado. Las etiquetas en español se comparten entre el formulario y el perfil.
+
+Los días siguen el mismo patrón con `DAYS_OF_WEEK` y `type DayOfWeek = typeof DAYS_OF_WEEK[number]`. `src/constants/weekdays.ts` conserva el mapa tipado de etiquetas y exporta `days` como referencia a la tupla canónica, sin copiar la lista de identificadores. Los componentes consumen estas constantes; el módulo de tipos no depende de ellas. `as const` protege los tipos durante la compilación; no congela el arreglo en ejecución.
 
 ### Distancia opcional
 
@@ -133,6 +140,8 @@ Los formularios mantienen sus borradores, errores y confirmaciones. Los inputs s
 
 Los resultados se derivan de la rutina en cada renderizado: no requieren estado adicional, `useEffect` ni `useMemo`.
 
+`ExerciseList` recibe únicamente `ExerciseCalorieContribution[]`: tanto el estado vacío como las filas dependen de `contributions`. Cada contribución incluye su entrada (día y ejercicio), calorías y porcentaje. `WorkoutSummary` conserva la sección y el título de la rutina; las filas utilizan el identificador del ejercicio como clave estable, generado al registrarlo.
+
 ## Fórmulas
 
 | Cálculo | Regla | Función en `calculations.ts` |
@@ -153,11 +162,15 @@ Ejemplo: dos ejercicios el lunes de 300 y 180 kcal, y uno el miércoles de 120 k
 
 ### Resumen comparativo
 
+`findHighestCalorieDay(routine: WeeklyRoutine): DayCalorieSummary | null` suma las calorías por día mediante `calculateExerciseCalories`. Devuelve `{ day: DayOfWeek, calories: number }`, o `null` cuando no hay entradas. Solo incluye días con ejercicios, incluso si aportan cero calorías. En un empate conserva el día cuya primera entrada aparece antes en la rutina. La interfaz muestra, por ejemplo, `Día con más calorías: Lunes (700 cal)` para dos entradas de 400 y 300 calorías el lunes frente a 600 el miércoles.
+
 `calculateComparativeSummary` identifica el ejercicio de mayor duración y el de más calorías, y devuelve las contribuciones por entrada. Los empates conservan el primero registrado. Las entradas repetidas contribuyen cada vez que aparecen.
 
 Sin ejercicios, total y promedio son 0, los máximos son `null` y las contribuciones son `[]`. Con un total de cero calorías, los porcentajes son 0; los máximos siguen seleccionándose entre los ejercicios existentes.
 
-La interfaz muestra calorías con hasta dos decimales y porcentajes con dos decimales. Los porcentajes mostrados pueden no sumar exactamente 100 % por el redondeo individual.
+El resumen devuelve `highestCalorieContribution`, la misma contribución seleccionada de `contributions`, con entrada, calorías y porcentaje; es `null` si la rutina está vacía. Conserva `highestCalorieExercise` por compatibilidad. La interfaz reutiliza estos datos sin recalcular calorías ni porcentajes.
+
+La interfaz muestra calorías con hasta dos decimales. El destacado de más calorías redondea el porcentaje a un entero: `Swimming (720 cal, 48% del total)` para una rutina de 1488 calorías. La lista conserva los porcentajes con dos decimales. Los porcentajes mostrados pueden no sumar exactamente 100 % por el redondeo individual.
 
 ### Formato de duración
 
@@ -185,9 +198,9 @@ TypeScript no valida por sí solo los datos introducidos. Además, un `number` p
 | Duración | Finita y mayor que cero |
 | Calorías por minuto | Finitas y mayores o iguales a cero |
 | Distancia | Opcional; si se proporciona, finita y mayor que cero |
-| Calorías y ritmo resultantes | Comprobación de desbordamiento |
+| Calorías y ritmo resultantes | El formulario rechaza productos, total propuesto de rutina y ritmo no finitos antes de guardar |
 
-Las funciones lanzan `RangeError` ante duraciones, tasas calóricas o resultados no válidos. `calculatePace` devuelve `undefined` ante distancias inválidas. El total también comprueba desbordamientos; `WorkoutSummary` muestra un mensaje cuando los cálculos del resumen no pueden completarse. Se utiliza validación directa, sin framework ni sistema de esquemas.
+El formulario recibe la rutina actual y valida los datos y resultados antes de llamar a `onAdd`. Los cálculos confían en estos datos validados, sin repetir comprobaciones ni lanzar excepciones por desbordamiento. Al ser no negativas las calorías, un total de rutina finito también protege las sumas diarias. `calculatePace` conserva `undefined` ante distancias ausentes o inválidas. `WorkoutSummary` deriva los resultados directamente y trata explícitamente las rutinas vacías. `formatDuration` mantiene su validación independiente y lanza `RangeError` para valores negativos o no finitos. Se utiliza validación directa, sin framework ni sistema de esquemas. Cualquier futura vía de entrada de datos deberá validar antes de actualizar el estado.
 
 ## TypeScript estricto y decisiones técnicas
 
@@ -203,7 +216,6 @@ Sprint 0 exige no usar `any`, `@ts-ignore`, `@ts-nocheck` ni aserciones insegura
 | Actualizaciones inmutables | Conservan el estado anterior y permiten detectar cambios |
 | `Omit`, `Partial`, `Record` y `ReturnType` | Derivan tipos existentes y evitan repetir contratos |
 | `ChangeEvent` y `FormEvent` | Tipan los elementos y operaciones de los eventos |
-| `unknown` al capturar errores | Exige comprobar el tipo antes de tratar un error como `RangeError` |
 | CSS sencillo y validación directa | Mantienen el alcance educativo sin infraestructura adicional |
 
 ## Memoria y ausencia de persistencia

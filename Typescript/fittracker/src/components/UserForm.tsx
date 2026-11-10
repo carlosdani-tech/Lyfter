@@ -1,5 +1,6 @@
 ﻿import { useState, type ChangeEvent, type FormEvent, type JSX } from 'react'
-import type { ExperienceLevel, UserProfile } from '../types/fitness'
+import { EXPERIENCE_LEVELS, isExperienceLevel, type ExperienceLevel, type UserProfile } from '../types/fitness'
+import { experienceLabels } from './experienceLevels'
 
 interface UserFormProps {
   onSave: (details: Omit<UserProfile, 'routine'>) => void
@@ -27,7 +28,7 @@ export default function UserForm({ onSave }: UserFormProps): JSX.Element {
   }
   function handleExperienceChange(event: ChangeEvent<HTMLSelectElement>): void {
     const value = event.currentTarget.value
-    if (value === 'beginner' || value === 'intermediate' || value === 'advanced') {
+    if (isExperienceLevel(value)) {
       setExperienceLevel(value)
       setSaved(false)
     }
@@ -64,9 +65,9 @@ export default function UserForm({ onSave }: UserFormProps): JSX.Element {
         {errors.age && <p id="age-error" role="alert">{errors.age}</p>}
         <label htmlFor="experience">Nivel de experiencia</label>
         <select id="experience" name="experienceLevel" value={experienceLevel} onChange={handleExperienceChange}>
-          <option value="beginner">Principiante</option>
-          <option value="intermediate">Intermedio</option>
-          <option value="advanced">Avanzado</option>
+          {EXPERIENCE_LEVELS.map((level: ExperienceLevel): JSX.Element => (
+            <option key={level} value={level}>{experienceLabels[level]}</option>
+          ))}
         </select>
         <button type="submit">Guardar perfil</button>
         {saved && <p role="status">Perfil guardado.</p>}

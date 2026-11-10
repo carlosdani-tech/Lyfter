@@ -4,31 +4,24 @@ import {
   calculateRoutineCalories,
   calculateAverageCaloriesPerTrainedDay,
   calculateComparativeSummary,
-  calculateExerciseCalories,
+  findHighestCalorieDay,
 } from '../utils/calculations'
 import { formatDuration } from '../utils/formatters'
 import ExerciseList from './ExerciseList'
+import { dayLabels } from '../constants/weekdays'
 
 interface WorkoutSummaryProps {
   routine: WeeklyRoutine
 }
 
 export default function WorkoutSummary({ routine }: WorkoutSummaryProps): JSX.Element {
-  // A routine total can overflow even when each individual exercise is valid.
-  let total: number
-  let average: number
-  let summary: ReturnType<typeof calculateComparativeSummary>
-  try {
-    total = calculateRoutineCalories(routine)
-    average = calculateAverageCaloriesPerTrainedDay(routine)
-    summary = calculateComparativeSummary(routine)
-  } catch (error: unknown) {
-    if (!(error instanceof RangeError)) throw error
-    return <p role="alert">No se puede calcular el resumen: los valores de la rutina exceden el rango numérico permitido.</p>
-  }
+  const total = calculateRoutineCalories(routine)
+  const average = calculateAverageCaloriesPerTrainedDay(routine)
+  const summary = calculateComparativeSummary(routine)
+  const highestDay = findHighestCalorieDay(routine)
 
   const longest = summary.longestExercise
-  const highestCalorie = summary.highestCalorieExercise
+  const highestCalorie = summary.highestCalorieContribution
 
   return (
     <>
@@ -42,11 +35,16 @@ export default function WorkoutSummary({ routine }: WorkoutSummaryProps): JSX.El
           <dt>Ejercicio de mayor duración</dt>
           <dd>{longest === null ? 'Sin ejercicios todavía.' : `${longest.name} (${formatDuration(longest.durationMinutes)})`}</dd>
           <dt>Ejercicio con más calorías</dt>
-          <dd>{highestCalorie === null ? 'Sin ejercicios todavía.' : `${highestCalorie.name} (${calculateExerciseCalories(highestCalorie).toLocaleString('es', { maximumFractionDigits: 2 })} kcal)`}</dd>
+          <dd>{highestCalorie === null ? 'Sin ejercicios todavía.' : `${highestCalorie.entry.exercise.name} (${highestCalorie.calories.toLocaleString('es', { maximumFractionDigits: 2 })} cal, ${highestCalorie.percentage.toFixed(0)}% del total)`}</dd>
+          <dt>Día con más calorías</dt>
+          <dd>{highestDay === null ? 'Sin ejercicios todavía.' : `${dayLabels[highestDay.day]} (${highestDay.calories.toLocaleString('es', { maximumFractionDigits: 2 })} cal)`}</dd>
         </dl>
         <p>El promedio cuenta solo días con ejercicios. En caso de empate, se muestra el primero registrado.</p>
       </section>
-      <ExerciseList routine={routine} contributions={summary.contributions} />
+      <section aria-labelledby="exercise-list-heading">
+        <h2 id="exercise-list-heading">{routine.name}</h2>
+        <ExerciseList contributions={summary.contributions} />
+      </section>
     </>
   )
 }

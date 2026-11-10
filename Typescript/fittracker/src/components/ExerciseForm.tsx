@@ -1,8 +1,10 @@
 import { useState, type ChangeEvent, type FormEvent, type JSX } from 'react'
-import type { DayOfWeek, RoutineEntry } from '../types/fitness'
-import { dayLabels, days } from './weekdays'
+import type { DayOfWeek, RoutineEntry, WeeklyRoutine } from '../types/fitness'
+import { calculateRoutineCalories } from '../utils/calculations'
+import { dayLabels, days } from '../constants/weekdays'
 
 interface ExerciseFormProps {
+  routine: WeeklyRoutine
   onAdd: (entry: RoutineEntry) => void
 }
 
@@ -19,7 +21,7 @@ const emptyDraft: ExerciseDraft = {
   name: '', durationMinutes: '', caloriesPerMinute: '', distanceKm: '',
 }
 
-export default function ExerciseForm({ onAdd }: ExerciseFormProps): JSX.Element {
+export default function ExerciseForm({ routine, onAdd }: ExerciseFormProps): JSX.Element {
   const [draft, setDraft] = useState<ExerciseDraft>(emptyDraft)
   const [day, setDay] = useState<DayOfWeek>('monday')
   const [errors, setErrors] = useState<FormErrors>({})
@@ -56,8 +58,9 @@ export default function ExerciseForm({ onAdd }: ExerciseFormProps): JSX.Element 
     if (distance !== undefined && (!Number.isFinite(distance) || distance <= 0)) {
       nextErrors.distanceKm = 'La distancia debe ser un número finito mayor que cero, o quedar vacía.'
     }
-    if (!nextErrors.durationMinutes && !nextErrors.caloriesPerMinute && !Number.isFinite(duration * calories)) {
-      nextErrors.caloriesPerMinute = 'Las calorías calculadas son demasiado grandes; reduce los valores.'
+    if (!nextErrors.durationMinutes && !nextErrors.caloriesPerMinute
+      && !Number.isFinite(calculateRoutineCalories(routine) + duration * calories)) {
+      nextErrors.caloriesPerMinute = 'Las calorías del ejercicio o el total de la rutina son demasiado grandes; reduce los valores.'
     }
     if (!nextErrors.durationMinutes && !nextErrors.distanceKm && distance !== undefined && !Number.isFinite(duration / distance)) {
       nextErrors.distanceKm = 'El ritmo calculado es demasiado grande; revisa la distancia y la duración.'

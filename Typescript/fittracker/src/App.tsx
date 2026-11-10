@@ -29,7 +29,7 @@ export default function App(): JSX.Element {
       <UserProfile profile={profile} />
       {profile === null ? <p>Guarda tu perfil para registrar ejercicios.</p> : (
         <>
-          <ExerciseForm onAdd={addExercise} />
+          <ExerciseForm routine={profile.routine} onAdd={addExercise} />
           <WorkoutSummary routine={profile.routine} />
         </>
       )}

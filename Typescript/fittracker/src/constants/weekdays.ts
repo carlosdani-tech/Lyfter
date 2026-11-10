@@ -1,4 +1,4 @@
-import type { DayOfWeek } from '../types/fitness'
+import { DAYS_OF_WEEK, type DayOfWeek } from '../types/fitness'
 
 export const dayLabels: Record<DayOfWeek, string> = {
   monday: 'Lunes',
@@ -10,6 +10,4 @@ export const dayLabels: Record<DayOfWeek, string> = {
   sunday: 'Domingo',
 }
 
-export const days: DayOfWeek[] = [
-  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
-]
+export const days = DAYS_OF_WEEK

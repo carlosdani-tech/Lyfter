@@ -1,13 +1,9 @@
 ﻿import type { JSX } from 'react'
-import type { ExperienceLevel, UserProfile as Profile } from '../types/fitness'
+import type { UserProfile as Profile } from '../types/fitness'
+import { experienceLabels } from './experienceLevels'
 
 interface UserProfileProps {
   profile: Profile | null
-}
-const experienceLabels: Record<ExperienceLevel, string> = {
-  beginner: 'Principiante',
-  intermediate: 'Intermedio',
-  advanced: 'Avanzado',
 }
 export default function UserProfile({ profile }: UserProfileProps): JSX.Element {
   return (
