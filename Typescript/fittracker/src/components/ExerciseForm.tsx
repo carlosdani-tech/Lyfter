@@ -1,117 +1,130 @@
 import { useState, type ChangeEvent, type FormEvent, type JSX } from 'react'
-import type { DayOfWeek, RoutineEntry, WeeklyRoutine } from '../types/fitness'
+import type { DayOfWeek, Exercise, ExerciseCategory, ExerciseDraft, ExerciseField, ExerciseFormErrors, ExerciseFormProps, HeartRateZone, RoutineEntry } from '../types/fitness'
+import { EXERCISE_CATEGORIES, categoryLabels, HEART_RATE_ZONES, DAYS_OF_WEEK, dayLabels } from '../constants/fitness'
 import { calculateRoutineCalories } from '../utils/calculations'
-import { dayLabels, days } from '../constants/weekdays'
 
-interface ExerciseFormProps {
-  routine: WeeklyRoutine
-  onAdd: (entry: RoutineEntry) => void
-}
-
-interface ExerciseDraft {
-  name: string
-  durationMinutes: string
-  caloriesPerMinute: string
-  distanceKm: string
-}
-
-type FormErrors = Partial<Record<keyof ExerciseDraft, string>>
-
-const emptyDraft: ExerciseDraft = {
-  name: '', durationMinutes: '', caloriesPerMinute: '', distanceKm: '',
-}
+const emptyDraft: ExerciseDraft = { category: '', name: '', durationMinutes: '', caloriesPerMinute: '' }
 
 export default function ExerciseForm({ routine, onAdd }: ExerciseFormProps): JSX.Element {
   const [draft, setDraft] = useState<ExerciseDraft>(emptyDraft)
   const [day, setDay] = useState<DayOfWeek>('monday')
-  const [errors, setErrors] = useState<FormErrors>({})
+  const [errors, setErrors] = useState<ExerciseFormErrors>({})
   const [saved, setSaved] = useState<boolean>(false)
 
-  function handleInputChange(event: ChangeEvent<HTMLInputElement>): void {
-    const { name, value } = event.currentTarget
-    if (name === 'name' || name === 'durationMinutes' || name === 'caloriesPerMinute' || name === 'distanceKm') {
-      setDraft((previous: ExerciseDraft): ExerciseDraft => ({ ...previous, [name]: value }))
-      setSaved(false)
+  function changeCategory(event: ChangeEvent<HTMLSelectElement>): void {
+    const category = event.currentTarget.value
+    const common = { name: draft.name, durationMinutes: draft.durationMinutes, caloriesPerMinute: draft.caloriesPerMinute }
+    switch (category) {
+      case 'cardio': setDraft({ ...common, category, distanceKm: '', heartRateZone: '' }); break
+      case 'strength': setDraft({ ...common, category, sets: '', repetitionsPerSet: '', weightKg: '' }); break
+      case 'flexibility': setDraft({ ...common, category, poseCount: '' }); break
+      case '': setDraft({ ...common, category }); break
+      default: return
     }
-  }
-
-  function handleDayChange(event: ChangeEvent<HTMLSelectElement>): void {
-    const selected = days.find((value: DayOfWeek): boolean => value === event.currentTarget.value)
-    if (selected !== undefined) setDay(selected)
+    setErrors({})
     setSaved(false)
   }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>): void {
-    event.preventDefault()
-    const duration = Number(draft.durationMinutes)
-    const calories = Number(draft.caloriesPerMinute)
-    const distance = draft.distanceKm.trim() === '' ? undefined : Number(draft.distanceKm)
-    const nextErrors: FormErrors = {}
-
-    if (draft.name.trim() === '') nextErrors.name = 'Escribe el nombre del ejercicio.'
-    if (draft.durationMinutes.trim() === '' || !Number.isFinite(duration) || duration <= 0) {
-      nextErrors.durationMinutes = 'La duración debe ser un número finito mayor que cero.'
-    }
-    if (draft.caloriesPerMinute.trim() === '' || !Number.isFinite(calories) || calories < 0) {
-      nextErrors.caloriesPerMinute = 'Las calorías por minuto deben ser un número finito mayor o igual a cero.'
-    }
-    if (distance !== undefined && (!Number.isFinite(distance) || distance <= 0)) {
-      nextErrors.distanceKm = 'La distancia debe ser un número finito mayor que cero, o quedar vacía.'
-    }
-    if (!nextErrors.durationMinutes && !nextErrors.caloriesPerMinute
-      && !Number.isFinite(calculateRoutineCalories(routine) + duration * calories)) {
-      nextErrors.caloriesPerMinute = 'Las calorías del ejercicio o el total de la rutina son demasiado grandes; reduce los valores.'
-    }
-    if (!nextErrors.durationMinutes && !nextErrors.distanceKm && distance !== undefined && !Number.isFinite(duration / distance)) {
-      nextErrors.distanceKm = 'El ritmo calculado es demasiado grande; revisa la distancia y la duración.'
-    }
-    setErrors(nextErrors)
-    setSaved(false)
-    if (Object.keys(nextErrors).length > 0) return
-
-    onAdd({
-      day,
-      exercise: {
-        id: crypto.randomUUID(), name: draft.name.trim(),
-        durationMinutes: duration, caloriesPerMinute: calories,
-        ...(distance === undefined ? {} : { distanceKm: distance }),
-      },
+  function changeField(field: ExerciseField, value: string): void {
+    setDraft((previous: ExerciseDraft): ExerciseDraft => {
+      switch (field) {
+        case 'name': case 'durationMinutes': case 'caloriesPerMinute': return { ...previous, [field]: value }
+        case 'distanceKm': return previous.category === 'cardio' ? { ...previous, distanceKm: value } : previous
+        case 'sets': case 'repetitionsPerSet': case 'weightKg': return previous.category === 'strength' ? { ...previous, [field]: value } : previous
+        case 'poseCount': return previous.category === 'flexibility' ? { ...previous, poseCount: value } : previous
+      }
     })
+    setSaved(false)
+  }
+  function input(field: ExerciseField, label: string, value: string, integer: boolean = false): JSX.Element {
+    const id = `exercise-${field}`
+    return <div className="form-field">
+      <label htmlFor={id}>{label}</label>
+      <input id={id} value={value} type={field === 'name' ? 'text' : 'number'} min={field === 'name' ? undefined : 0}
+        step={integer ? '1' : 'any'} required onChange={(event: ChangeEvent<HTMLInputElement>): void => changeField(field, event.currentTarget.value)}
+        aria-invalid={Boolean(errors[field])} aria-describedby={errors[field] ? `${id}-error` : undefined} />
+      {errors[field] && <p id={`${id}-error`} role="alert">{errors[field]}</p>}
+    </div>
+  }
+  function submit(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault()
+    const next: ExerciseFormErrors = {}
+    function numeric(field: ExerciseField, text: string, positive: boolean, integer: boolean = false): number {
+      const value = Number(text)
+      if (text.trim() === '' || !Number.isFinite(value) || (positive ? value <= 0 : value < 0) || (integer && !Number.isSafeInteger(value))) {
+        next[field] = `Introduce un número ${integer ? 'entero seguro ' : 'finito '}${positive ? 'mayor que cero' : 'mayor o igual a cero'}.`
+      }
+      return value
+    }
+    if (!draft.name.trim()) next.name = 'Escribe el nombre del ejercicio.'
+    const durationMinutes = numeric('durationMinutes', draft.durationMinutes, true)
+    const caloriesPerMinute = numeric('caloriesPerMinute', draft.caloriesPerMinute, false)
+    if (!Number.isFinite(calculateRoutineCalories(routine) + durationMinutes * caloriesPerMinute)) next.caloriesPerMinute = 'El total de calorías es demasiado grande.'
+    if (!Number.isFinite(routine.entries.reduce((total: number, entry: RoutineEntry): number => total + entry.exercise.durationMinutes, 0) + durationMinutes)) next.durationMinutes = 'El total de minutos es demasiado grande.'
+    const common = { id: crypto.randomUUID(), name: draft.name.trim(), durationMinutes, caloriesPerMinute }
+    let exercise: Exercise | undefined
+    switch (draft.category) {
+      case '': next.category = 'Selecciona una categoría.'; break
+      case 'cardio': {
+        const distanceKm = numeric('distanceKm', draft.distanceKm, true)
+        if (!Number.isFinite(durationMinutes / distanceKm)) next.distanceKm = 'La distancia no permite calcular un ritmo finito.'
+        if (draft.heartRateZone === '') next.heartRateZone = 'Selecciona una zona de frecuencia cardíaca.'
+        else exercise = { ...common, category: 'cardio', distanceKm, heartRateZone: draft.heartRateZone }
+        break
+      }
+      case 'strength': exercise = { ...common, category: 'strength', sets: numeric('sets', draft.sets, true, true), repetitionsPerSet: numeric('repetitionsPerSet', draft.repetitionsPerSet, true, true), weightKg: numeric('weightKg', draft.weightKg, false) }; break
+      case 'flexibility': exercise = { ...common, category: 'flexibility', poseCount: numeric('poseCount', draft.poseCount, true, true) }; break
+    }
+    setErrors(next)
+    setSaved(false)
+    if (Object.keys(next).length || exercise === undefined) return
+    onAdd({ day, exercise })
     setDraft(emptyDraft)
     setDay('monday')
     setSaved(true)
   }
-
-  return (
-    <section aria-labelledby="exercise-form-heading">
-      <h2 id="exercise-form-heading">Registrar ejercicio</h2>
-      <form onSubmit={handleSubmit} noValidate>
-        <label htmlFor="exercise-name">Nombre del ejercicio</label>
-        <input id="exercise-name" name="name" value={draft.name} onChange={handleInputChange}
-          required aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? 'exercise-name-error' : undefined} />
-        {errors.name && <p id="exercise-name-error" role="alert">{errors.name}</p>}
-        <label htmlFor="exercise-day">Día de la semana</label>
-        <select id="exercise-day" value={day} onChange={handleDayChange}>
-          {days.map((value: DayOfWeek): JSX.Element => <option key={value} value={value}>{dayLabels[value]}</option>)}
+  return <section aria-labelledby="exercise-form-heading">
+    <h2 id="exercise-form-heading">Registrar ejercicio</h2>
+    <form onSubmit={submit} noValidate>
+      <div className="form-field">
+        <label htmlFor="exercise-category">Categoría</label>
+        <select id="exercise-category" value={draft.category} onChange={changeCategory} required aria-invalid={Boolean(errors.category)} aria-describedby={errors.category ? 'category-error' : undefined}>
+          <option value="">Selecciona una categoría</option>
+          {EXERCISE_CATEGORIES.map((category: ExerciseCategory): JSX.Element => <option key={category} value={category}>{categoryLabels[category]}</option>)}
         </select>
-        <label htmlFor="exercise-duration">Duración (minutos)</label>
-        <input id="exercise-duration" name="durationMinutes" type="number" min="0" step="any"
-          value={draft.durationMinutes} onChange={handleInputChange} required
-          aria-invalid={Boolean(errors.durationMinutes)} aria-describedby={errors.durationMinutes ? 'duration-error' : undefined} />
-        {errors.durationMinutes && <p id="duration-error" role="alert">{errors.durationMinutes}</p>}
-        <label htmlFor="exercise-calories">Calorías por minuto</label>
-        <input id="exercise-calories" name="caloriesPerMinute" type="number" min="0" step="any"
-          value={draft.caloriesPerMinute} onChange={handleInputChange} required
-          aria-invalid={Boolean(errors.caloriesPerMinute)} aria-describedby={errors.caloriesPerMinute ? 'calories-error' : undefined} />
-        {errors.caloriesPerMinute && <p id="calories-error" role="alert">{errors.caloriesPerMinute}</p>}
-        <label htmlFor="exercise-distance">Distancia (km, opcional)</label>
-        <input id="exercise-distance" name="distanceKm" type="number" min="0" step="any"
-          value={draft.distanceKm} onChange={handleInputChange}
-          aria-invalid={Boolean(errors.distanceKm)} aria-describedby={errors.distanceKm ? 'distance-error' : undefined} />
-        {errors.distanceKm && <p id="distance-error" role="alert">{errors.distanceKm}</p>}
-        <button type="submit">Agregar ejercicio</button>
-        {saved && <p role="status">Ejercicio registrado.</p>}
-      </form>
-    </section>
-  )
+        {errors.category && <p id="category-error" role="alert">{errors.category}</p>}
+      </div>
+      {draft.category !== '' && <>
+        {input('name', 'Nombre', draft.name)}
+        <div className="form-field">
+          <label htmlFor="exercise-day">Día</label>
+          <select id="exercise-day" value={day} onChange={(event: ChangeEvent<HTMLSelectElement>): void => {
+            const selected = DAYS_OF_WEEK.find((value: DayOfWeek): boolean => value === event.currentTarget.value)
+            if (selected !== undefined) setDay(selected)
+            setSaved(false)
+          }}>{DAYS_OF_WEEK.map((value: DayOfWeek): JSX.Element => <option key={value} value={value}>{dayLabels[value]}</option>)}</select>
+        </div>
+        {input('durationMinutes', 'Duración (minutos)', draft.durationMinutes)}
+        {input('caloriesPerMinute', 'Calorías por minuto', draft.caloriesPerMinute)}
+        {draft.category === 'cardio' && <>
+          {input('distanceKm', 'Distancia (km)', draft.distanceKm)}
+          <div className="form-field">
+            <label htmlFor="heart-rate-zone">Zona de frecuencia cardíaca</label>
+            <select id="heart-rate-zone" value={draft.heartRateZone} required aria-invalid={Boolean(errors.heartRateZone)}
+              aria-describedby={errors.heartRateZone ? 'heart-rate-zone-error' : undefined} onChange={(event: ChangeEvent<HTMLSelectElement>): void => {
+              const value = event.currentTarget.value
+              const zone = HEART_RATE_ZONES.find((candidate: HeartRateZone): boolean => String(candidate) === value)
+              if (value === '') setDraft({ ...draft, heartRateZone: '' })
+              else if (zone !== undefined) setDraft({ ...draft, heartRateZone: zone })
+              setSaved(false)
+            }}><option value="">Selecciona una zona</option>{HEART_RATE_ZONES.map((zone: HeartRateZone): JSX.Element => <option key={zone} value={zone}>Zona {zone}</option>)}</select>
+            {errors.heartRateZone && <p id="heart-rate-zone-error" role="alert">{errors.heartRateZone}</p>}
+          </div>
+        </>}
+        {draft.category === 'strength' && <>{input('sets', 'Series', draft.sets, true)}{input('repetitionsPerSet', 'Repeticiones por serie', draft.repetitionsPerSet, true)}{input('weightKg', 'Peso (kg)', draft.weightKg)}</>}
+        {draft.category === 'flexibility' && input('poseCount', 'Número de poses', draft.poseCount, true)}
+      </>}
+      <button type="submit">Agregar ejercicio</button>
+      {saved && <p role="status">Ejercicio registrado.</p>}
+    </form>
+  </section>
 }

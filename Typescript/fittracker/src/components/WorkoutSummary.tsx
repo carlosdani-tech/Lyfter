@@ -1,5 +1,5 @@
+import type { WorkoutSummaryProps } from '../types/fitness'
 import type { JSX } from 'react'
-import type { WeeklyRoutine } from '../types/fitness'
 import {
   calculateRoutineCalories,
   calculateAverageCaloriesPerTrainedDay,
@@ -8,11 +8,7 @@ import {
 } from '../utils/calculations'
 import { formatDuration } from '../utils/formatters'
 import ExerciseList from './ExerciseList'
-import { dayLabels } from '../constants/weekdays'
-
-interface WorkoutSummaryProps {
-  routine: WeeklyRoutine
-}
+import { dayLabels } from '../constants/fitness'
 
 export default function WorkoutSummary({ routine }: WorkoutSummaryProps): JSX.Element {
   const total = calculateRoutineCalories(routine)
