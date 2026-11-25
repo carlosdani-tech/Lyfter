@@ -1,36 +1,18 @@
-import type { DayOfWeek, Exercise, RoutineEntry, WeeklyRoutine } from "../types/fitness";
+import type { CardioExercise, DayOfWeek, Exercise, RoutineEntry, WeeklyRoutine, DayCalorieSummary, ExerciseCalorieContribution, ComparativeSummary } from "../types/fitness";
 
-export interface DayCalorieSummary {
-  day: DayOfWeek;
-  calories: number;
-}
-
-export interface ExerciseCalorieContribution {
-  entry: RoutineEntry;
-  calories: number;
-  percentage: number;
-}
-
-export interface ComparativeSummary {
-  longestExercise: Exercise | null;
-  highestCalorieExercise: Exercise | null;
-  highestCalorieContribution: ExerciseCalorieContribution | null;
-  contributions: ExerciseCalorieContribution[];
-}
-
-// Domain values and finite routine totals are validated before entering React state.
+// Form fields are validated before entering React state.
 export function calculateExerciseCalories(exercise: Exercise): number {
   return exercise.durationMinutes * exercise.caloriesPerMinute;
 }
 
 // An absent or invalid distance means that pace is unavailable.
-export function calculatePace(exercise: Exercise): number | undefined {
-  const distance: number | undefined = exercise.distanceKm;
-  if (distance === undefined || !Number.isFinite(distance) || distance <= 0) {
+export function calculatePace(exercise: CardioExercise): number | undefined {
+  const distance: number = exercise.distanceKm;
+  if (!Number.isFinite(distance) || distance <= 0) {
     return undefined;
   }
   const pace: number = exercise.durationMinutes / distance;
-  return Number(pace.toFixed(2));
+  return Number.isFinite(pace) ? Number(pace.toFixed(2)) : undefined;
 }
 
 export function calculateRoutineCalories(routine: WeeklyRoutine): number {
@@ -92,7 +74,6 @@ export function calculateComparativeSummary(routine: WeeklyRoutine): Comparative
   }
   return {
     longestExercise,
-    highestCalorieExercise: highestCalorieContribution?.entry.exercise ?? null,
     highestCalorieContribution,
     contributions,
   };
