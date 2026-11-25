@@ -1,5 +1,5 @@
 import type { UserFormProps, UserFormErrors } from '../types/fitness'
-import { useState, type ChangeEvent, type FormEvent, type JSX } from 'react'
+import { useRef, useState, type ChangeEvent, type FormEvent, type JSX } from 'react'
 import type { ExperienceLevel, MembershipPlan } from '../types/fitness'
 import { EXPERIENCE_LEVELS, MEMBERSHIP_PLANS, experienceLabels, membershipPlanLabels, isExperienceLevel, isMembershipPlan } from '../constants/fitness'
 
@@ -10,6 +10,7 @@ export default function UserForm({ onSave }: UserFormProps): JSX.Element {
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>('beginner')
   const [membershipPlan, setMembershipPlan] = useState<MembershipPlan | ''>('')
   const [membershipStartDate, setMembershipStartDate] = useState<string>('')
+  const membershipDateRef = useRef<HTMLInputElement>(null)
   const [isActive, setIsActive] = useState<boolean>(true)
   const [errors, setErrors] = useState<UserFormErrors>({})
   const [saved, setSaved] = useState<boolean>(false)
@@ -40,12 +41,8 @@ export default function UserForm({ onSave }: UserFormProps): JSX.Element {
       nextErrors.age = 'Escribe una edad entera entre 1 y 120 años.'
     }
     if (membershipPlan === '') nextErrors.membershipPlan = 'Selecciona un plan de membresía.'
-    const year = Number(membershipStartDate.slice(0, 4))
-    const month = Number(membershipStartDate.slice(5, 7))
-    const day = Number(membershipStartDate.slice(8, 10))
-    const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0)
-    const daysInMonth = month === 2 ? (leapYear ? 29 : 28) : ([4, 6, 9, 11].includes(month) ? 30 : 31)
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(membershipStartDate) || year < 1 || month < 1 || month > 12 || day < 1 || day > daysInMonth) {
+    const dateInput = membershipDateRef.current
+    if (!dateInput || !dateInput.validity.valid || !/^\d{4}-\d{2}-\d{2}$/.test(dateInput.value)) {
       nextErrors.membershipStartDate = 'Introduce una fecha válida (AAAA-MM-DD).'
     }
     setErrors(nextErrors)
@@ -94,7 +91,7 @@ export default function UserForm({ onSave }: UserFormProps): JSX.Element {
         </div>
         <div className="form-field">
           <label htmlFor="membership-date">Fecha de inicio</label>
-          <input id="membership-date" type="date" min="0001-01-01" max="9999-12-31" required value={membershipStartDate} onChange={(event: ChangeEvent<HTMLInputElement>): void => {
+          <input ref={membershipDateRef} id="membership-date" type="date" min="0001-01-01" max="9999-12-31" required value={membershipStartDate} onChange={(event: ChangeEvent<HTMLInputElement>): void => {
             setMembershipStartDate(event.currentTarget.value)
             setSaved(false)
           }} aria-invalid={Boolean(errors.membershipStartDate)} aria-describedby={errors.membershipStartDate ? 'membership-date-error' : undefined} />

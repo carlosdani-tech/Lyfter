@@ -1,13 +1,12 @@
-import type { DayOfWeek, Exercise, RoutineEntry, WeeklyRoutine, DayCalorieSummary, ExerciseCalorieContribution, ComparativeSummary } from "../types/fitness";
+import type { CardioExercise, DayOfWeek, Exercise, RoutineEntry, WeeklyRoutine, DayCalorieSummary, ExerciseCalorieContribution, ComparativeSummary } from "../types/fitness";
 
-// Domain values and finite routine totals are validated before entering React state.
+// Form fields are validated before entering React state.
 export function calculateExerciseCalories(exercise: Exercise): number {
   return exercise.durationMinutes * exercise.caloriesPerMinute;
 }
 
 // An absent or invalid distance means that pace is unavailable.
-export function calculatePace(exercise: Exercise): number | undefined {
-  if (exercise.category !== "cardio") return undefined;
+export function calculatePace(exercise: CardioExercise): number | undefined {
   const distance: number = exercise.distanceKm;
   if (!Number.isFinite(distance) || distance <= 0) {
     return undefined;

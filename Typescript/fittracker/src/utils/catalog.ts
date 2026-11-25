@@ -1,4 +1,4 @@
-import type { CatalogGroup, Exercise, ExerciseCategory, ExerciseId, RoutineEntry } from '../types/fitness'
+import type { CatalogGroup, Exercise, ExerciseCategory, RoutineEntry } from '../types/fitness'
 import { calculateExerciseCalories, calculatePace } from './calculations'
 import { EXERCISE_CATEGORIES } from '../constants/fitness'
 
@@ -19,15 +19,11 @@ export function describeExercise(exercise: Exercise): string {
   }
 }
 
-// First occurrence wins if multiple routine entries reference the same ID.
 export function summarizeCatalog(entries: readonly RoutineEntry[]): CatalogGroup[] {
   const groups: CatalogGroup[] = EXERCISE_CATEGORIES.map((category: ExerciseCategory): CatalogGroup => ({
     category, exercises: [], count: 0, minutes: 0, calories: 0,
   }))
-  const seen = new Set<ExerciseId>()
   for (const { exercise } of entries) {
-    if (seen.has(exercise.id)) continue
-    seen.add(exercise.id)
     const group = groups.find((candidate: CatalogGroup): boolean => candidate.category === exercise.category)
     if (group !== undefined) {
       group.exercises.push(exercise)

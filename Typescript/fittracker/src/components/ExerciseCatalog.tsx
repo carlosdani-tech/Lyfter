@@ -13,9 +13,9 @@ export default function ExerciseCatalog({ entries }: CatalogProps): JSX.Element 
     </ul>
     {count === 0 && <p>Todavía no hay ejercicios en el catálogo.</p>}
     {groups.map((group: CatalogGroup): JSX.Element => <div className="catalog-group" key={group.category}>
-      <h3>{categoryLabels[group.category]} ({group.count} ejercicios, {group.minutes} min, {group.calories.toLocaleString('es', { maximumFractionDigits: 2 })} kcal)</h3>
+      <h3>{categoryLabels[group.category]} ({group.count} {group.count === 1 ? 'ejercicio' : 'ejercicios'}, {group.minutes} min, {group.calories.toLocaleString('es', { maximumFractionDigits: 2 })} kcal)</h3>
       {group.count === 0 ? <p>Sin ejercicios en esta categoría.</p> : <ul className="exercise-list">{group.exercises.map((exercise: Exercise): JSX.Element => <li key={exercise.id}>{describeExercise(exercise)}</li>)}</ul>}
     </div>)}
-    <p>Total: {count} ejercicios</p>
+    <p>Total: {count} {count === 1 ? 'ejercicio' : 'ejercicios'}</p>
   </section>
 }

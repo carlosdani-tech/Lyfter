@@ -64,7 +64,6 @@ export interface PersonalInfo {
 export type UserProfile = PersonalInfo & MembershipInfo & { routine: WeeklyRoutine };
 
 export interface ExerciseFormProps {
-  routine: WeeklyRoutine
   onAdd: (entry: RoutineEntry) => void
 }
 

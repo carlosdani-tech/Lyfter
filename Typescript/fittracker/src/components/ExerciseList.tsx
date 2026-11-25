@@ -11,7 +11,7 @@ export default function ExerciseList({ contributions }: ExerciseListProps): JSX.
       {contributions.length === 0 ? <p>Todavía no hay ejercicios registrados.</p> : (
         <ul className="exercise-list">
           {contributions.map(({ entry, calories, percentage }: ExerciseCalorieContribution, index: number): JSX.Element => {
-            const pace = calculatePace(entry.exercise)
+            const pace = entry.exercise.category === 'cardio' ? calculatePace(entry.exercise) : undefined
             return (
               <li key={`${entry.exercise.id}-${index}`}>
                 <h3>{entry.exercise.name} — {dayLabels[entry.day]}</h3>
